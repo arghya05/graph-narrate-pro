@@ -33,16 +33,18 @@ export function Dashboard() {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-      <Header />
-      
-      <div className="flex-1 flex p-8 gap-6 overflow-hidden">
-        <div className="w-1/3 border border-primary rounded-lg overflow-hidden flex flex-col">
-          <ChatInterface onDataReceived={handleDataReceived} />
-        </div>
+    <div className="h-screen bg-gray-200 p-4 flex flex-col overflow-hidden">
+      <div className="flex-1 bg-background border-8 border-black rounded-xl overflow-hidden flex flex-col">
+        <Header />
+        
+        <div className="flex-1 flex p-8 gap-6 overflow-hidden">
+          <div className="w-1/3 border border-primary rounded-lg overflow-hidden flex flex-col">
+            <ChatInterface onDataReceived={handleDataReceived} />
+          </div>
 
-        <div className="flex-1 border border-primary rounded-lg overflow-hidden">
-          <VisualizationTabs data={currentData} />
+          <div className="flex-1 border border-primary rounded-lg overflow-hidden">
+            <VisualizationTabs data={currentData} />
+          </div>
         </div>
       </div>
 
