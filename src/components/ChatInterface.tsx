@@ -4,7 +4,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Mic, Send, RotateCcw, Edit, Check, X, TrendingUp, ThumbsUp, ThumbsDown, ChevronDown, Brain } from 'lucide-react';
-import { SuggestedQuestions } from './SuggestedQuestions';
 import { EditableMessage } from './EditableMessage';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
