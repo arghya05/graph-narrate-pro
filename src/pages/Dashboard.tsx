@@ -38,7 +38,7 @@ export function Dashboard() {
       <div className="flex-1 bg-background border-8 border-primary rounded-xl overflow-hidden flex flex-col">
         <Header />
         
-        <div className="flex-1 p-8 overflow-hidden">
+        <div className="flex-1 overflow-hidden">
           <PanelGroup direction="horizontal" className="gap-6">
             <Panel defaultSize={33} minSize={20} className="border border-primary rounded-lg overflow-hidden">
               <ChatInterface onDataReceived={handleDataReceived} />
