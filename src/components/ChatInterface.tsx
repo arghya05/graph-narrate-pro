@@ -5,10 +5,12 @@ import { Card } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Mic, Send, RotateCcw, Edit, Check, X, TrendingUp, ThumbsUp, ThumbsDown, ChevronDown, Brain } from 'lucide-react';
 import { EditableMessage } from './EditableMessage';
+import { SuggestedQuestions } from './SuggestedQuestions';
+import { VoiceVisualizer } from './VoiceVisualizer';
 import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
-import { buildApiUrl, API_ENDPOINTS } from '@/config/api';
-import remarkGfm from 'remark-gfm'
+import { api, apiClient, ChatQuery, ChatResponse, DeepDiveResponse } from '@/lib/api';
+import remarkGfm from 'remark-gfm';
 interface Message {
   id: string;
   content: string;
@@ -23,10 +25,11 @@ interface Message {
 }
 
 interface ChatPanelProps {
-  onPdfSelect: (filename: string) => void;
+  onPdfSelect?: (filename: string) => void;
+  onDataReceived?: (data: Record<string, any>[]) => void;
 }
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ onPdfSelect }) => {
+export const ChatInterface: React.FC<ChatPanelProps> = ({ onPdfSelect, onDataReceived }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -42,15 +45,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onPdfSelect }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Agent personas mapping
+// Agent personas mapping for retail analysis
 const agentPersonas = {
-    'dealership': { name: 'Dealership Sales', color: 'bg-blue-500' },
-    'financing': { name: 'Finance Advisor', color: 'bg-green-500' },
-    'technical': { name: 'Technical Specialist', color: 'bg-purple-500' },
-    'guard_rail_blocked': { name: 'Question Blocked', color: 'bg-red-500' },
-    'inventory': { name: 'Inventory Manager', color: 'bg-teal-500' },
-    'supervisor': { name: 'Reasoning Steps', color: 'bg-amber-500' },
-    'default': { name: 'Dealership Sales', color: 'bg-gray-500' }
+    'sales': { name: 'Sales Analyst', color: 'bg-blue-500' },
+    'inventory': { name: 'Inventory Manager', color: 'bg-green-500' },
+    'marketing': { name: 'Marketing Analyst', color: 'bg-purple-500' },
+    'customer': { name: 'Customer Insights', color: 'bg-pink-500' },
+    'finance': { name: 'Financial Analyst', color: 'bg-teal-500' },
+    'operations': { name: 'Operations Manager', color: 'bg-amber-500' },
+    'default': { name: 'Retail Analyst', color: 'bg-gray-500' }
   };
 
   const getAgentPersona = (agentType?: string) => {
@@ -58,13 +61,13 @@ const agentPersonas = {
   };
 
   const suggestedQuestions = [
-    "Tell me about Nexon car",
-    "Harrier vs Safari comparison", 
-    "Best electric vehicle",
-    "CNG cars available",
-    "Family SUV under 15 lakhs",
-    "Test drive booking",
-    "Financing options"
+    "Show me sales trends by category",
+    "Analyze customer purchase patterns",
+    "Which products have low inventory?", 
+    "Compare monthly revenue growth",
+    "Top performing sales regions",
+    "Customer satisfaction analysis",
+    "Seasonal sales performance"
   ];
 
   const scrollToBottom = () => {
@@ -116,7 +119,7 @@ const agentPersonas = {
     setMessages(prev => [...prev, assistantMessage]);
 
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.CHAT), {
+      const response = await fetch(api.endpoints.chat, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +206,7 @@ const agentPersonas = {
 
   const checkCustomerInsights = async (convId: string) => {
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.CONVERSATIONS_INSIGHTS(convId)));
+      const response = await fetch(api.endpoints.session(convId));
       if (response.ok) {
         const insights = await response.json();
         if (insights.filenames && insights.filenames.length > 0) {
@@ -218,7 +221,7 @@ const agentPersonas = {
 
   const fetchFollowupQuestions = async (convId: string, messageId: string) => {
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.CONVERSATIONS_FOLLOWUP(convId)));
+      const response = await fetch(api.endpoints.deepDiveQuestions);
       if (response.ok) {
         const questions = await response.json();
         if (questions && Array.isArray(questions) && questions.length > 0) {
@@ -279,7 +282,7 @@ const agentPersonas = {
     }
 
     try {
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.CHAT_VOICE), {
+      const response = await fetch(api.endpoints.chat, {
         method: 'POST',
         body: formData,
       });
@@ -425,7 +428,7 @@ const agentPersonas = {
         type
       };
 
-      const response = await fetch(buildApiUrl(API_ENDPOINTS.FAVOURABLE_CONVERSATIONS(conversationId)), {
+      const response = await fetch(api.endpoints.session(conversationId), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -456,9 +459,9 @@ const agentPersonas = {
       {/* Header */}
       <div className="border-b border-border p-4 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Car Sales & Financing Assistant</h2>
+          <h2 className="text-lg font-semibold text-foreground">Retail Analytics Assistant</h2>
           <p className="text-sm text-muted-foreground">
-            I can help you find the perfect car, explore financing options, and answer questions about our inventory.
+            I can help you analyze sales data, customer insights, inventory trends, and business performance.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -640,7 +643,7 @@ const agentPersonas = {
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about cars, financing, trade-ins, or our inventory..."
+            placeholder="Ask about sales trends, customer insights, inventory analysis..."
             className="min-h-[60px] resize-none"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
