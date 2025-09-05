@@ -34,7 +34,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="h-screen bg-gray-200 flex flex-col overflow-hidden">
+    <div className="h-screen bg-gray-200 p-1 flex flex-col overflow-hidden">
       <div className="flex-1 bg-background border-8 border-primary rounded-xl overflow-hidden flex flex-col">
         <Header />
         
