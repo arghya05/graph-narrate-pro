@@ -4,7 +4,7 @@ import { ChatInterface } from '@/components/ChatInterface';
 import { VisualizationTabs } from '@/components/VisualizationTabs';
 import { DetailedAnalysis } from '@/components/DetailedAnalysis';
 import { Toaster } from '@/components/ui/toaster';
-import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 
 export function Dashboard() {
   const [currentData, setCurrentData] = useState<Record<string, any>[]>([]);
