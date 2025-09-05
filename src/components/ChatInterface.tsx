@@ -1,424 +1,675 @@
-import { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, Bot, User, Loader2, Upload, Database, Sparkles, TrendingUp, ShoppingCart, Users, DollarSign } from 'lucide-react';
-import { apiClient, api, ChatResponse, ChatQuery, DeepDiveResponse } from '@/lib/api';
+import { Card } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Mic, Send, RotateCcw, Edit, Check, X, TrendingUp, ThumbsUp, ThumbsDown, ChevronDown, Brain } from 'lucide-react';
+import { VoiceVisualizer } from './VoiceVisualizer';
+import { SuggestedQuestions } from './SuggestedQuestions';
+import { EditableMessage } from './EditableMessage';
 import { useToast } from '@/hooks/use-toast';
-
+import ReactMarkdown from 'react-markdown';
+import { buildApiUrl, API_ENDPOINTS } from '@/config/api';
+import remarkGfm from 'remark-gfm'
 interface Message {
   id: string;
-  type: 'user' | 'bot';
   content: string;
-  sqlData?: Record<string, any>[];
+  sender: 'user' | 'assistant';
   timestamp: Date;
-  deepDiveQuestions?: string[];
+  type: 'text' | 'voice';
+  isEditing?: boolean;
+  metadata?: {
+    agent_type?: string;
+  };
+  reasoning_content?: string;
 }
 
-interface ChatInterfaceProps {
-  onDataReceived?: (data: Record<string, any>[]) => void;
-  sessionId?: string;
+interface ChatPanelProps {
+  onPdfSelect: (filename: string) => void;
 }
 
-// Retail Analysis Personas
-const RETAIL_PERSONAS = [
-  {
-    id: 'sales-analyst',
-    name: 'Sales Analyst',
-    icon: TrendingUp,
-    description: 'Focus on sales performance, revenue trends, and growth metrics',
-    examples: [
-      'Analyze monthly sales performance by product category',
-      'Show top-selling products and their revenue contribution',
-      'Compare sales trends across different store locations'
-    ]
-  },
-  {
-    id: 'customer-insights',
-    name: 'Customer Analytics',
-    icon: Users,
-    description: 'Customer behavior, segmentation, and retention analysis',
-    examples: [
-      'Identify customer purchasing patterns and preferences',
-      'Analyze customer lifetime value by segment',
-      'Show customer retention rates over time'
-    ]
-  },
-  {
-    id: 'inventory-manager',
-    name: 'Inventory Manager',
-    icon: Database,
-    description: 'Stock levels, turnover rates, and supply chain insights',
-    examples: [
-      'Analyze inventory turnover by product category',
-      'Identify slow-moving and fast-moving inventory',
-      'Show stockout patterns and seasonal demand'
-    ]
-  },
-  {
-    id: 'marketing-analyst',
-    name: 'Marketing ROI',
-    icon: DollarSign,
-    description: 'Campaign performance, channel effectiveness, and attribution',
-    examples: [
-      'Analyze marketing campaign ROI by channel',
-      'Show conversion rates across different channels',
-      'Track customer acquisition costs and attribution'
-    ]
-  }
-];
-
-export function ChatInterface({ onDataReceived, sessionId }: ChatInterfaceProps) {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ onPdfSelect }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | undefined>(sessionId);
-  const [selectedPersona, setSelectedPersona] = useState<string>('sales-analyst');
-  const [dataframeData, setDataframeData] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'chat' | 'dataframe'>('chat');
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioData, setAudioData] = useState<number[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [selectedText, setSelectedText] = useState<string>('');
+  const [showFollowUp, setShowFollowUp] = useState(false);
+  const [isHindi, setIsHindi] = useState(false);
+  const [followupQuestions, setFollowupQuestions] = useState<{[messageId: string]: string[]}>({});
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Agent personas mapping
+const agentPersonas = {
+    'dealership': { name: 'Dealership Sales', color: 'bg-blue-500' },
+    'financing': { name: 'Finance Advisor', color: 'bg-green-500' },
+    'technical': { name: 'Technical Specialist', color: 'bg-purple-500' },
+    'guard_rail_blocked': { name: 'Question Blocked', color: 'bg-red-500' },
+    'inventory': { name: 'Inventory Manager', color: 'bg-teal-500' },
+    'supervisor': { name: 'Reasoning Steps', color: 'bg-amber-500' },
+    'default': { name: 'Dealership Sales', color: 'bg-gray-500' }
+  };
+
+  const getAgentPersona = (agentType?: string) => {
+    return agentPersonas[agentType as keyof typeof agentPersonas] || agentPersonas.default;
+  };
+
+  const suggestedQuestions = [
+    "Tell me about Nexon car",
+    "Harrier vs Safari comparison", 
+    "Best electric vehicle",
+    "CNG cars available",
+    "Family SUV under 15 lakhs",
+    "Test drive booking",
+    "Financing options"
+  ];
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+  const sendMessage = async (content: string, type: 'text' | 'voice' = 'text', retryMessageId?: string) => {
+    if (!content.trim()) return;
+
+    // If this is a retry, remove the failed message and its response
+    if (retryMessageId) {
+      setMessages(prev => {
+        const messageIndex = prev.findIndex(m => m.id === retryMessageId);
+        if (messageIndex !== -1) {
+          return prev.slice(0, messageIndex);
+        }
+        return prev;
+      });
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      type: 'user',
-      content: input,
+      content,
+      sender: 'user',
       timestamp: new Date(),
+      type
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = input;
+    setIsLoading(true);
     setInput('');
-    setLoading(true);
+
+    // Create a placeholder assistant message that will be updated as we stream
+    const assistantMessageId = (Date.now() + 1).toString();
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      content: '',
+      sender: 'assistant',
+      timestamp: new Date(),
+      type: 'text',
+      metadata: undefined,
+      reasoning_content: ''
+    };
+
+    setMessages(prev => [...prev, assistantMessage]);
 
     try {
-      // Include dataframe data if available
-      const queryData: any = {
-        message: currentInput,
-        ...(currentSessionId && { session_id: currentSessionId }),
-        ...(dataframeData && { dataframe_data: JSON.parse(dataframeData) })
-      };
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.CHAT), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: content,
+          conversation_id: conversationId,
+          hindi_langauge: isHindi
+        }),
+      });
 
-      const response: ChatResponse = await apiClient.post(api.endpoints.chat, queryData);
+      if (!response.ok) throw new Error('Failed to send message');
 
-      if (!currentSessionId) {
-        setCurrentSessionId(response.session_id);
-      }
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-      // Get deep dive questions if we have data
-      let deepDiveQuestions: string[] = [];
-      if (response.sql_data && response.sql_data.length > 0) {
-        try {
-          const deepDiveResponse: DeepDiveResponse = await apiClient.post(api.endpoints.deepDiveQuestions, {
-            user_message: currentInput,
-            dataframe_data: response.sql_data.reduce((acc, row, index) => {
-              Object.keys(row).forEach(key => {
-                if (!acc[key]) acc[key] = [];
-                acc[key][index] = row[key];
-              });
-              return acc;
-            }, {} as Record<string, any[]>),
-            limit: 5
-          });
-          deepDiveQuestions = deepDiveResponse.questions;
-        } catch (error) {
-          console.warn('Failed to get deep dive questions:', error);
+      if (!reader) throw new Error('Failed to get response reader');
+
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              // Update the assistant message with streaming content
+              setMessages(prev => prev.map(msg => {
+                if (msg.id === assistantMessageId) {
+                  return {
+                    ...msg,
+                    content: data.message || msg.content,
+                    metadata: data.meta_data || msg.metadata,
+                    reasoning_content: data.reasoning_content || msg.reasoning_content
+                  };
+                }
+                return msg;
+              }));
+
+              // Update conversation ID
+              if (data.conversation_id) {
+                setConversationId(data.conversation_id);
+              }
+              
+            } catch (parseError) {
+              console.error('Error parsing SSE data:', parseError);
+            }
+          }
         }
       }
 
-      const botMessage: Message = {
-        id: response.message_id,
-        type: 'bot',
-        content: response.analysis,
-        sqlData: response.sql_data,
-        deepDiveQuestions,
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, botMessage]);
-
-      if (response.sql_data && response.sql_data.length > 0) {
-        onDataReceived?.(response.sql_data);
+      // After streaming is complete, check for insights and followup questions
+      if (conversationId) {
+        checkCustomerInsights(conversationId);
+        fetchFollowupQuestions(conversationId, assistantMessageId);
       }
 
-      toast({
-        title: "Analysis complete",
-        description: `Generated insights with ${response.sql_data?.length || 0} data points`,
-      });
     } catch (error) {
-      console.error('Chat error:', error);
+      console.error('Error sending message:', error);
+      toast({
+        title: "Connection Error",
+        description: "Cannot connect to the chat server. Please check if the backend service is running on localhost:9090",
+        variant: "destructive",
+      });
+      
+      // Remove the placeholder assistant message on error
+      setMessages(prev => prev.filter(msg => msg.id !== assistantMessageId));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkCustomerInsights = async (convId: string) => {
+    try {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.CONVERSATIONS_INSIGHTS(convId)));
+      if (response.ok) {
+        const insights = await response.json();
+        if (insights.filenames && insights.filenames.length > 0) {
+          // Auto-select the first PDF
+          onPdfSelect(insights.filenames[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking insights:', error);
+    }
+  };
+
+  const fetchFollowupQuestions = async (convId: string, messageId: string) => {
+    try {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.CONVERSATIONS_FOLLOWUP(convId)));
+      if (response.ok) {
+        const questions = await response.json();
+        if (questions && Array.isArray(questions) && questions.length > 0) {
+          setFollowupQuestions(prev => ({
+            ...prev,
+            [messageId]: questions
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching followup questions:', error);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const audioChunks: Blob[] = [];
+
+      recorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        await sendVoiceMessage(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      setMediaRecorder(recorder);
+      recorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please check if the API server is running.",
+        description: "Could not access microphone",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleDeepDiveClick = (question: string) => {
-    setInput(question);
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setAudioData([]);
+    }
   };
 
-  const handleExampleClick = (example: string) => {
-    setInput(example);
-  };
+  const sendVoiceMessage = async (audioBlob: Blob) => {
+    const formData = new FormData();
+    formData.append('audio_file', audioBlob, 'audio.wav');
+    formData.append('hindi_language', isHindi.toString());
+    if (conversationId) {
+      formData.append('conversation_id', conversationId);
+    }
 
-  const uploadDataframe = () => {
     try {
-      const parsed = JSON.parse(dataframeData);
-      toast({
-        title: "Dataframe uploaded",
-        description: `Ready to analyze ${Array.isArray(parsed) ? parsed.length : Object.keys(parsed).length} data points`,
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.CHAT_VOICE), {
+        method: 'POST',
+        body: formData,
       });
-      setActiveTab('chat');
+
+      if (!response.ok) throw new Error('Failed to send voice message');
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) throw new Error('Failed to get response reader');
+
+      let buffer = '';
+      let userMessage: Message | null = null;
+      let assistantMessageId: string | null = null;
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              // Create user message if transcribed_text is available and not already created
+              if (data.transcribed_text && !userMessage) {
+                userMessage = {
+                  id: Date.now().toString(),
+                  content: data.transcribed_text,
+                  sender: 'user',
+                  timestamp: new Date(),
+                  type: 'voice'
+                };
+                setMessages(prev => [...prev, userMessage!]);
+              }
+
+              // Create or update assistant message
+              if (data.message && !assistantMessageId) {
+                assistantMessageId = (Date.now() + 1).toString();
+                const assistantMessage: Message = {
+                  id: assistantMessageId,
+                  content: '',
+                  sender: 'assistant',
+                  timestamp: new Date(),
+                  type: 'text',
+                  metadata: undefined,
+                  reasoning_content: ''
+                };
+                setMessages(prev => [...prev, assistantMessage]);
+              }
+
+              // Update assistant message with streaming content
+              if (assistantMessageId) {
+                setMessages(prev => prev.map(msg => {
+                  if (msg.id === assistantMessageId) {
+                    return {
+                      ...msg,
+                      content: data.message || msg.content,
+                      metadata: data.meta_data || msg.metadata,
+                      reasoning_content: data.reasoning_content || msg.reasoning_content
+                    };
+                  }
+                  return msg;
+                }));
+              }
+
+              // Update conversation ID
+              if (data.conversation_id) {
+                setConversationId(data.conversation_id);
+              }
+              
+            } catch (parseError) {
+              console.error('Error parsing voice SSE data:', parseError);
+            }
+          }
+        }
+      }
+
+      // After streaming is complete, check for insights and followup questions
+      if (conversationId && assistantMessageId) {
+        checkCustomerInsights(conversationId);
+        fetchFollowupQuestions(conversationId, assistantMessageId);
+      }
+
     } catch (error) {
+      console.error('Error sending voice message:', error);
       toast({
-        title: "Invalid JSON",
-        description: "Please check your dataframe format",
+        title: "Connection Error",
+        description: "Cannot connect to the chat server. Please check if the backend service is running on localhost:9090",
         variant: "destructive",
       });
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim()) {
+      setSelectedText(selection.toString().trim());
+      setShowFollowUp(true);
     }
   };
 
-  const currentPersona = RETAIL_PERSONAS.find(p => p.id === selectedPersona) || RETAIL_PERSONAS[0];
+  const handleFollowUpQuestion = () => {
+    const followUpPrompt = `Based on this text: "${selectedText}", can you provide more details or analysis?`;
+    sendMessage(followUpPrompt);
+    setShowFollowUp(false);
+    setSelectedText('');
+  };
+
+  const handleEditMessage = (messageId: string, newContent: string) => {
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId ? { ...msg, content: newContent, isEditing: false } : msg
+      )
+    );
+    // Resend the edited message
+    sendMessage(newContent, 'text', messageId);
+  };
+
+  const toggleEdit = (messageId: string) => {
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId ? { ...msg, isEditing: !msg.isEditing } : msg
+      )
+    );
+  };
+
+  const sendFeedback = async (type: 'good' | 'bad') => {
+    if (!conversationId) return;
+
+    try {
+      const conversationData = {
+        data: messages,
+        type
+      };
+
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.FAVOURABLE_CONVERSATIONS(conversationId)), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(conversationData),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Feedback Sent",
+          description: `Thank you for your ${type === 'good' ? 'positive' : 'negative'} feedback!`,
+        });
+      } else {
+        throw new Error('Failed to send feedback');
+      }
+    } catch (error) {
+      console.error('Error sending feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send feedback. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-primary" />
-            Retail Analytics AI
-          </CardTitle>
-          {currentSessionId && (
-            <Badge variant="outline" className="text-xs">
-              Session: {currentSessionId.slice(0, 8)}...
-            </Badge>
-          )}
-        </div>
-        
-        {/* Persona Selection */}
-        <div className="mt-3">
-          <Select value={selectedPersona} onValueChange={setSelectedPersona}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RETAIL_PERSONAS.map((persona) => (
-                <SelectItem key={persona.id} value={persona.id}>
-                  <div className="flex items-center gap-2">
-                    <persona.icon className="h-4 w-4" />
-                    <span>{persona.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground mt-1">
-            {currentPersona.description}
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header */}
+      <div className="border-b border-border p-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Car Sales & Financing Assistant</h2>
+          <p className="text-sm text-muted-foreground">
+            I can help you find the perfect car, explore financing options, and answer questions about our inventory.
           </p>
         </div>
-      </CardHeader>
-      
-      <CardContent className="flex-1 flex flex-col p-0">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'chat' | 'dataframe')} className="flex-1 flex flex-col">
-          <TabsList className="mx-6 mb-4">
-            <TabsTrigger value="chat" className="flex items-center gap-2">
-              <Bot className="h-4 w-4" />
-              Chat Analysis
-            </TabsTrigger>
-            <TabsTrigger value="dataframe" className="flex items-center gap-2">
-              <Database className="h-4 w-4" />
-              Data Upload
-            </TabsTrigger>
-          </TabsList>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={isHindi ? "default" : "outline"}
+            size="sm"
+            onClick={() => setIsHindi(!isHindi)}
+          >
+            {isHindi ? "Hindi" : "English"}
+          </Button>
+        </div>
+      </div>
 
-          <TabsContent value="chat" className="flex-1 flex flex-col mt-0">
-            <ScrollArea className="flex-1 px-6" ref={scrollRef}>
-              <div className="space-y-4 pb-4">
-                {messages.length === 0 && (
-                  <div className="text-center text-muted-foreground py-8">
-                    <currentPersona.icon className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <h3 className="font-medium mb-2">Ready for Retail Analytics</h3>
-                    <p className="text-sm mb-4">Ask me about your retail data using natural language!</p>
-                    
-                    <div className="grid gap-2 max-w-md mx-auto">
-                      <p className="text-xs font-medium">Try these examples:</p>
-                      {currentPersona.examples.map((example, index) => (
-                        <Button
-                          key={index}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs h-auto py-2 px-3 text-left whitespace-normal"
-                          onClick={() => handleExampleClick(example)}
-                        >
-                          <Sparkles className="h-3 w-3 mr-2 flex-shrink-0" />
-                          {example}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`flex gap-3 max-w-[85%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        message.type === 'user' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-secondary text-secondary-foreground'
-                      }`}>
-                        {message.type === 'user' ? <User className="h-4 w-4" /> : <currentPersona.icon className="h-4 w-4" />}
-                      </div>
-                      
-                      <div className={`rounded-lg p-3 ${
-                        message.type === 'user'
-                          ? 'bg-primary text-primary-foreground ml-auto'
-                          : 'bg-secondary text-secondary-foreground'
-                      }`}>
-                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
-                        
-                        {message.sqlData && message.sqlData.length > 0 && (
-                          <div className="mt-2 p-2 bg-black/10 rounded text-xs">
-                            <p className="font-medium mb-1">📊 Data Retrieved:</p>
-                            <p>{message.sqlData.length} records • {Object.keys(message.sqlData[0] || {}).length} columns</p>
-                          </div>
-                        )}
-
-                        {message.deepDiveQuestions && message.deepDiveQuestions.length > 0 && (
-                          <div className="mt-3 space-y-1">
-                            <p className="text-xs font-medium opacity-80">💡 Deep Dive Questions:</p>
-                            {message.deepDiveQuestions.slice(0, 3).map((question, index) => (
-                              <Button
-                                key={index}
-                                variant="ghost"
-                                size="sm"
-                                className="h-auto py-1 px-2 text-xs text-left whitespace-normal w-full justify-start"
-                                onClick={() => handleDeepDiveClick(question)}
-                              >
-                                <span className="mr-2">→</span>
-                                {question}
-                              </Button>
-                            ))}
-                          </div>
-                        )}
-                        
-                        <div className="text-xs opacity-70 mt-1">
-                          {message.timestamp.toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {loading && (
-                  <div className="flex gap-3 justify-start">
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                      <currentPersona.icon className="h-4 w-4" />
-                    </div>
-                    <div className="bg-secondary rounded-lg p-3 flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Analyzing retail data...</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-            
-            <div className="p-6 pt-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  placeholder={`Ask ${currentPersona.name} about your retail data...`}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  disabled={loading}
-                  className="flex-1"
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" onMouseUp={handleTextSelection}>
+        {messages.map((message) => (
+          <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] ${message.sender === 'user' ? 'order-1' : 'order-2'}`}>
+              {message.isEditing ? (
+                <EditableMessage
+                  content={message.content}
+                  onSave={(newContent) => handleEditMessage(message.id, newContent)}
+                  onCancel={() => toggleEdit(message.id)}
                 />
-                <Button 
-                  onClick={sendMessage} 
-                  disabled={!input.trim() || loading}
-                  size="icon"
-                >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
+              ) : (
+                <Card className={`p-3 ${
+                  message.sender === 'user' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-card'
+                }`}>
+                  {/* Reasoning Steps Section - Above Response */}
+                  {message.sender === 'assistant' && message.reasoning_content && (
+                    <Collapsible className="mb-3">
+                      <CollapsibleTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start p-2 h-auto bg-slate-50/50 dark:bg-slate-900/20 hover:bg-slate-100/50 dark:hover:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30 rounded-md"
+                        >
+                          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                            <Brain className="w-3 h-3" />
+                            <span className="text-xs font-medium">Reasoning Steps</span>
+                            <ChevronDown className="w-3 h-3 ml-auto transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                          </div>
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        <div className="text-sm prose prose-sm max-w-none dark:prose-invert bg-slate-50/50 dark:bg-slate-900/20 p-3 rounded border border-slate-200/50 dark:border-slate-700/30">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.reasoning_content}</ReactMarkdown>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   )}
+
+                  {message.sender === 'assistant' && message.metadata?.agent_type && (
+                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border">
+                      <div className={`w-2 h-2 rounded-full ${getAgentPersona(message.metadata.agent_type).color}`}></div>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {getAgentPersona(message.metadata.agent_type).name}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start justify-between gap-2">
+                    {message.sender === 'assistant' ? (
+                      <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-sm">{message.content}</p>
+                    )}
+                    {message.sender === 'user' && (
+                      <div className="flex gap-1 ml-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => toggleEdit(message.id)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => sendMessage(message.content, 'text', message.id)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Feedback buttons for assistant messages */}
+                  {message.sender === 'assistant' && (
+                    <div className="flex gap-2 mt-3 pt-2 border-t border-border">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => sendFeedback('good')}
+                        className="h-8 px-3 text-xs"
+                      >
+                        <ThumbsUp className="w-3 h-3 mr-1" />
+                        Like
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => sendFeedback('bad')}
+                        className="h-8 px-3 text-xs"
+                      >
+                        <ThumbsDown className="w-3 h-3 mr-1" />
+                        Dislike
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+              )}
+              
+              {/* Followup Questions for Assistant Messages */}
+              {message.sender === 'assistant' && followupQuestions[message.id] && (
+                <div className="mt-3">
+                  <SuggestedQuestions
+                    questions={followupQuestions[message.id]}
+                    onQuestionSelect={sendMessage}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <Card className="p-3 bg-card">
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                <span className="text-sm text-muted-foreground">Thinking...</span>
+              </div>
+            </Card>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Follow-up dialog */}
+      {showFollowUp && (
+        <div className="mx-4 mb-2">
+          <Card className="p-3 bg-accent">
+            <div className="flex items-center justify-between">
+              <p className="text-sm">Ask a follow-up question about: "{selectedText.slice(0, 50)}..."</p>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleFollowUpQuestion}>
+                  <Check className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowFollowUp(false)}>
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
             </div>
-          </TabsContent>
+          </Card>
+        </div>
+      )}
 
-          <TabsContent value="dataframe" className="flex-1 flex flex-col mt-0">
-            <div className="flex-1 px-6 py-4">
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Upload Dataframe (JSON format)
-                  </label>
-                  <Textarea
-                    placeholder={`Paste your dataframe as JSON array:
-[
-  {"product": "Product A", "sales": 1200, "category": "Electronics"},
-  {"product": "Product B", "sales": 800, "category": "Clothing"},
-  ...
-]`}
-                    value={dataframeData}
-                    onChange={(e) => setDataframeData(e.target.value)}
-                    className="min-h-[200px] font-mono text-xs"
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button onClick={uploadDataframe} disabled={!dataframeData.trim()}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Data
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setDataframeData('')}
-                  >
-                    Clear
-                  </Button>
-                </div>
+      {/* Suggested Questions */}
+      <SuggestedQuestions
+        questions={suggestedQuestions}
+        onQuestionSelect={sendMessage}
+      />
 
-                {dataframeData && (
-                  <div className="text-xs text-muted-foreground">
-                    <p>💡 Once uploaded, your data will be automatically included in chat analysis</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+      {/* Voice Visualizer */}
+      {isRecording && (
+        <div className="mx-4 mb-2">
+          <VoiceVisualizer isRecording={isRecording} audioData={audioData} />
+        </div>
+      )}
+
+      {/* Input Area */}
+      <div className="border-t border-border p-4">
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about cars, financing, trade-ins, or our inventory..."
+            className="min-h-[60px] resize-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(input);
+              }
+            }}
+          />
+          <div className="flex flex-col gap-2">
+            <Button
+              onClick={() => sendMessage(input)}
+              disabled={!input.trim() || isLoading}
+              size="icon"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isLoading}
+              size="icon"
+            >
+              <Mic className={`w-4 h-4 ${isRecording ? 'text-destructive' : ''}`} />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-}
+};
