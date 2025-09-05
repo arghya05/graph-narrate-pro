@@ -36,8 +36,8 @@ export function Dashboard() {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
       
-      <div className="flex-1 flex p-4 gap-4 overflow-hidden">
-        <div className="w-1/3 border border-primary rounded-lg overflow-hidden">
+      <div className="flex-1 flex p-8 gap-6 overflow-hidden">
+        <div className="w-1/3 border border-primary rounded-lg overflow-hidden flex flex-col">
           <ChatInterface onDataReceived={handleDataReceived} />
         </div>
 
