@@ -1,28 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, GitCompare, Eye, Menu } from 'lucide-react';
+import { MessageCircle, GitCompare, Eye } from 'lucide-react';
 
-interface HeaderProps {
-  onMenuClick?: () => void;
-  sidebarCollapsed?: boolean;
-}
-
-export function Header({ onMenuClick, sidebarCollapsed }: HeaderProps) {
+export function Header() {
   return (
     <header className="h-12 bg-header-background border-b border-header-border flex items-center justify-between px-4 z-50">
-      {/* Left side - Logo and menu */}
+      {/* Left side - Logo */}
       <div className="flex items-center gap-4">
-        {!sidebarCollapsed && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onMenuClick}
-            className="h-8 w-8 text-header-foreground hover:bg-secondary"
-          >
-            <Menu className="h-4 w-4" />
-          </Button>
-        )}
-        
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-white rounded-sm flex items-center justify-center">
             <span className="text-black font-bold text-sm">⚡</span>

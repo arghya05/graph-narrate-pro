@@ -456,25 +456,6 @@ const agentPersonas = {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="border-b border-border p-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Retail Analytics Assistant</h2>
-          <p className="text-sm text-muted-foreground">
-            I can help you analyze sales data, customer insights, inventory trends, and business performance.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={isHindi ? "default" : "outline"}
-            size="sm"
-            onClick={() => setIsHindi(!isHindi)}
-          >
-            {isHindi ? "Hindi" : "English"}
-          </Button>
-        </div>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4" onMouseUp={handleTextSelection}>
         {messages.map((message) => (
