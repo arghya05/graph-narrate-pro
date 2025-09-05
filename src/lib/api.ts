@@ -9,14 +9,27 @@ export const api = {
     deepDiveQuestions: `${BASE_URL}/deep-dive-questions`,
     sessions: `${BASE_URL}/chat/sessions`,
     session: (id: string) => `${BASE_URL}/chat/sessions/${id}`,
-    continueChat: (id: string) => `${BASE_URL}/chat/continue/${id}`,
+    continueChat: (id: string, message: string) => `${BASE_URL}/chat/continue/${id}?message=${encodeURIComponent(message)}`,
     analyzeVariables: `${BASE_URL}/analyze-variables`,
-    valueCounts: (variable: string) => `${BASE_URL}/value-counts/${variable}`,
+    valueCounts: (variable: string, topN?: number) => `${BASE_URL}/value-counts/${variable}${topN ? `?top_n=${topN}` : ''}`,
     twoLevelAnalysis: `${BASE_URL}/two-level-analysis`,
     threeLevelAnalysis: `${BASE_URL}/three-level-analysis`,
     health: `${BASE_URL}/health`,
+    root: BASE_URL,
   }
 };
+
+// API Request Types
+export interface ChatQuery {
+  message: string;
+  session_id?: string | null;
+}
+
+export interface DeepDiveRequest {
+  user_message: string;
+  dataframe_data: Record<string, any[]>;
+  limit?: number | null;
+}
 
 // API Response Types
 export interface ChatResponse {
@@ -26,9 +39,14 @@ export interface ChatResponse {
   message_id: string;
 }
 
-export interface ChatQuery {
-  message: string;
-  session_id?: string;
+export interface DeepDiveResponse {
+  questions: string[];
+  session_id: string;
+}
+
+export interface SessionsListResponse {
+  sessions: Record<string, any>[];
+  total_count: number;
 }
 
 export interface VariableAnalysis {
@@ -39,7 +57,7 @@ export interface VariableAnalysis {
 export interface ColumnInfo {
   name: string;
   dtype: string;
-  data_type: 'numeric' | 'categorical' | 'datetime' | 'boolean';
+  data_type: DataType;
   unique_count: number;
   null_count: number;
   sample_values: any[];
@@ -52,7 +70,11 @@ export interface ChartRecommendation {
   complexity_level: string;
 }
 
-export type ChartType = 'bar' | 'line' | 'scatter' | 'pie' | 'histogram' | 'box' | 'heatmap' | 'area' | 'violin' | 'sunburst' | 'treemap';
+export interface ValueCountsResponse {
+  variable: string;
+  counts: Record<string, any>;
+  chart_data: Record<string, any>;
+}
 
 export interface TwoLevelAnalysisResponse {
   var1: string;
@@ -62,10 +84,29 @@ export interface TwoLevelAnalysisResponse {
   chart_data: Record<string, any>;
 }
 
-export interface DeepDiveResponse {
-  questions: string[];
-  session_id: string;
+export interface ThreeLevelAnalysisResponse {
+  var1: string;
+  var2: string;
+  period_var: string;
+  analysis_type: string;
+  data: Record<string, any>;
+  chart_data: Record<string, any>;
 }
+
+export interface HTTPValidationError {
+  detail: ValidationError[];
+}
+
+export interface ValidationError {
+  loc: (string | number)[];
+  msg: string;
+  type: string;
+}
+
+// Enums
+export type ChartType = 'bar' | 'line' | 'scatter' | 'pie' | 'histogram' | 'box' | 'heatmap' | 'area' | 'violin' | 'sunburst' | 'treemap';
+
+export type DataType = 'numeric' | 'categorical' | 'datetime' | 'boolean';
 
 // API Helper Functions
 export const apiClient = {
