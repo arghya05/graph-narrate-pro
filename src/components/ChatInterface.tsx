@@ -126,8 +126,7 @@ const agentPersonas = {
         },
         body: JSON.stringify({
           message: content,
-          conversation_id: conversationId,
-          hindi_langauge: isHindi
+          session_id: conversationId
         }),
       });
 
@@ -172,8 +171,8 @@ const agentPersonas = {
               }));
 
               // Update conversation ID
-              if (data.conversation_id) {
-                setConversationId(data.conversation_id);
+              if (data.session_id) {
+                setConversationId(data.session_id);
               }
               
             } catch (parseError) {
@@ -221,13 +220,23 @@ const agentPersonas = {
 
   const fetchFollowupQuestions = async (convId: string, messageId: string) => {
     try {
-      const response = await fetch(api.endpoints.deepDiveQuestions);
+      const response = await fetch(api.endpoints.deepDiveQuestions, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_message: "Generate follow-up questions",
+          dataframe_data: {},
+          limit: 5
+        }),
+      });
       if (response.ok) {
-        const questions = await response.json();
-        if (questions && Array.isArray(questions) && questions.length > 0) {
+        const result = await response.json();
+        if (result.questions && Array.isArray(result.questions) && result.questions.length > 0) {
           setFollowupQuestions(prev => ({
             ...prev,
-            [messageId]: questions
+            [messageId]: result.questions
           }));
         }
       }
@@ -276,9 +285,8 @@ const agentPersonas = {
   const sendVoiceMessage = async (audioBlob: Blob) => {
     const formData = new FormData();
     formData.append('audio_file', audioBlob, 'audio.wav');
-    formData.append('hindi_language', isHindi.toString());
     if (conversationId) {
-      formData.append('conversation_id', conversationId);
+      formData.append('session_id', conversationId);
     }
 
     try {
@@ -359,8 +367,8 @@ const agentPersonas = {
               }
 
               // Update conversation ID
-              if (data.conversation_id) {
-                setConversationId(data.conversation_id);
+              if (data.session_id) {
+                setConversationId(data.session_id);
               }
               
             } catch (parseError) {

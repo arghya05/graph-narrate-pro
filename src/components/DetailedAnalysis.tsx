@@ -45,8 +45,7 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
         api.endpoints.twoLevelAnalysis,
         {
           var1: selectedVar1,
-          var2: selectedVar2,
-          data: data
+          var2: selectedVar2
         }
       );
       setAnalysisData(response);
