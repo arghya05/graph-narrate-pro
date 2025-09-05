@@ -33,17 +33,15 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
       
-      <div className="flex flex-1">
-        {/* Left side - Chat Interface */}
-        <div className="w-1/3 border-r border-border">
+      <div className="flex-1 flex p-4 gap-4 overflow-hidden">
+        <div className="w-1/3 border border-primary rounded-lg overflow-hidden">
           <ChatInterface onDataReceived={handleDataReceived} />
         </div>
 
-        {/* Right side - Visualizations */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 border border-primary rounded-lg overflow-hidden">
           <VisualizationTabs data={currentData} />
         </div>
       </div>
