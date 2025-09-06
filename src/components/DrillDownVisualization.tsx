@@ -358,7 +358,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
             {columnsInfo.length > 0 && (
               <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" className="w-full mb-4 justify-between h-auto p-3 bg-card/30 border-border/50 hover:bg-card/50">
+                  <Button variant="outline" className="w-full mb-4 justify-between h-auto p-3 bg-card/30 border-border/50 hover:bg-card hover:text-card-foreground">
                     <div className="flex items-center gap-2">
                       <Filter className="h-3 w-3" />
                       <span className="text-xs font-medium">Filter Variables ({selectedVariables.length}/{columnsInfo.length})</span>
@@ -421,27 +421,31 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                         </Badge>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <MoreVertical className="h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-36 bg-popover border border-border shadow-lg z-50">
                             <DropdownMenuItem 
-                              onClick={() => handleChartTypeChange(chart.variable, 'bar')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleChartTypeChange(chart.variable, 'bar');
+                              }}
                               className="flex items-center gap-2 cursor-pointer"
                             >
                               <BarChart className="h-3 w-3" />
                               Bar Chart
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => handleChartTypeChange(chart.variable, 'line')}
-                              className="flex items-center gap-2 cursor-pointer"
-                            >
-                              <LineChart className="h-3 w-3" />
-                              Line Chart
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleChartTypeChange(chart.variable, 'histogram')}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleChartTypeChange(chart.variable, 'histogram');
+                              }}
                               className="flex items-center gap-2 cursor-pointer"
                             >
                               <BarChart3 className="h-3 w-3" />

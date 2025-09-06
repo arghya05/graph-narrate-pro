@@ -122,9 +122,9 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
           g.select('.tooltip').remove();
         });
 
-      // Add axes with styling
-      const xAxis = d3.axisBottom(xScale);
-      const yAxis = d3.axisLeft(yScale);
+      // Add axes with styling - reduced ticks
+      const xAxis = d3.axisBottom(xScale).ticks(Math.min(5, data.length));
+      const yAxis = d3.axisLeft(yScale).ticks(5);
 
       // X axis with rotated labels
       g.append('g')
@@ -260,9 +260,9 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
             .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))');
         });
 
-      // Add axes
-      const xAxis = d3.axisBottom(xScale);
-      const yAxis = d3.axisLeft(yScale);
+      // Add axes - reduced ticks
+      const xAxis = d3.axisBottom(xScale).ticks(5);
+      const yAxis = d3.axisLeft(yScale).ticks(5);
 
       g.append('g')
         .attr('class', 'x-axis')
