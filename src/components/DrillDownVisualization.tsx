@@ -17,9 +17,10 @@ interface ColumnInfo {
 
 interface DrillDownVisualizationProps {
   data: Record<string, any>[];
+  onChartClick?: (chartTitle: string) => void;
 }
 
-export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
+export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualizationProps) {
   const [columnsInfo, setColumnsInfo] = useState<ColumnInfo[]>([]);
   const [singleVarCharts, setSingleVarCharts] = useState<Array<{
     variable: string;
@@ -405,10 +406,10 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
           <ScrollArea className="h-[calc(100vh-280px)]">
             <div className="space-y-4 pb-6">
               {filteredCharts.map((chart, index) => (
-                <Card 
+                  <Card 
                   key={`${chart.variable}-${index}`}
                   className="border-border/50 bg-card/50 cursor-pointer hover:bg-card/80 transition-all duration-200 hover:shadow-md flex-shrink-0"
-                  onClick={() => handleVariableClick(chart.variable)}
+                  onClick={() => onChartClick ? onChartClick(chart.variable) : handleVariableClick(chart.variable)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">

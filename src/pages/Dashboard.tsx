@@ -22,17 +22,6 @@ export function Dashboard() {
     setSelectedChart(null);
   };
 
-  if (selectedChart) {
-    return (
-      <DetailedAnalysis
-        open={true}
-        onOpenChange={closeDetailedAnalysis}
-        title={selectedChart}
-        data={currentData}
-      />
-    );
-  }
-
   return (
     <div className="h-screen bg-gray-200 p-1 flex flex-col overflow-hidden">
       <div className="flex-1 bg-background border-8 border-primary rounded-xl overflow-hidden flex flex-col">
@@ -47,7 +36,16 @@ export function Dashboard() {
             <PanelResizeHandle className="w-2 bg-primary/20 hover:bg-primary/40 transition-colors rounded-full" />
             
             <Panel defaultSize={67} minSize={30} className="border border-primary rounded-lg overflow-hidden">
-              <VisualizationTabs data={currentData} />
+              {selectedChart ? (
+                <DetailedAnalysis
+                  open={true}
+                  onOpenChange={closeDetailedAnalysis}
+                  title={selectedChart}
+                  data={currentData}
+                />
+              ) : (
+                <VisualizationTabs data={currentData} onChartClick={handleChartClick} />
+              )}
             </Panel>
           </PanelGroup>
         </div>

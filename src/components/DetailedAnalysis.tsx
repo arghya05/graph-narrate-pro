@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -123,19 +123,24 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Detailed Analysis: {title}</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
+    <div className="h-full flex flex-col bg-background">
+      <Card className="h-full border-0 shadow-none">
+        <CardHeader className="pb-4 border-b">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl font-semibold">Detailed Analysis: {title}</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+              ← Back to Overview
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
           {/* Variable Selection */}
-          <div className="flex gap-4 items-center">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
               <label className="text-sm font-medium mb-2 block">Primary Variable</label>
               <Select value={selectedVar1} onValueChange={setSelectedVar1}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Select primary variable" />
                 </SelectTrigger>
                 <SelectContent>
@@ -146,10 +151,10 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
               </Select>
             </div>
             
-            <div className="flex-1">
+            <div>
               <label className="text-sm font-medium mb-2 block">Secondary Variable</label>
               <Select value={selectedVar2} onValueChange={setSelectedVar2}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Select secondary variable" />
                 </SelectTrigger>
                 <SelectContent>
@@ -163,7 +168,7 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
             <Button 
               onClick={performAnalysis} 
               disabled={loading || !selectedVar1 || !selectedVar2}
-              className="mt-6"
+              className="h-10"
             >
               {loading ? (
                 <>
@@ -186,7 +191,7 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
           {analysisData && !loading && (
             <>
               {/* Metrics Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 {getMetrics().map((metric, index) => (
                   <MetricCard
                     key={index}
@@ -205,69 +210,88 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
 
               {/* Two-Level Charts */}
               <Tabs defaultValue="level1" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="level1">Level 1: {selectedVar1}</TabsTrigger>
                   <TabsTrigger value="level2">Level 2: Combined Analysis</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="level1" className="space-y-4">
-                  <Chart
-                    title={`Distribution by ${selectedVar1}`}
-                    data={getLevel1Data()}
-                    chartType="bar"
-                    onChartTypeChange={() => {}}
-                    availableTypes={['bar', 'pie', 'line']}
-                    description={`Analysis of ${selectedVar1} distribution`}
-                  />
+                <TabsContent value="level1" className="mt-0">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Distribution by {selectedVar1}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Chart
+                        title=""
+                        data={getLevel1Data()}
+                        chartType="bar"
+                        onChartTypeChange={() => {}}
+                        availableTypes={['bar', 'pie', 'line']}
+                        description={`Analysis of ${selectedVar1} distribution`}
+                      />
+                    </CardContent>
+                  </Card>
                 </TabsContent>
                 
-                <TabsContent value="level2" className="space-y-4">
-                  <Chart
-                    title={`Combined Analysis: ${selectedVar1} × ${selectedVar2}`}
-                    data={getLevel2Data()}
-                    chartType="bar"
-                    onChartTypeChange={() => {}}
-                    availableTypes={['bar', 'area', 'line']}
-                    description={`Top combinations of ${selectedVar1} and ${selectedVar2}`}
-                  />
+                <TabsContent value="level2" className="mt-0">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Combined Analysis: {selectedVar1} × {selectedVar2}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Chart
+                        title=""
+                        data={getLevel2Data()}
+                        chartType="bar"
+                        onChartTypeChange={() => {}}
+                        availableTypes={['bar', 'area', 'line']}
+                        description={`Top combinations of ${selectedVar1} and ${selectedVar2}`}
+                      />
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </Tabs>
 
               {/* Raw Data Preview */}
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-3">Data Preview</h3>
-                <div className="border rounded-lg overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-secondary">
-                      <tr>
-                        {availableColumns.slice(0, 5).map((col) => (
-                          <th key={col} className="p-3 text-left font-medium">
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.slice(0, 10).map((row, index) => (
-                        <tr key={index} className="border-t">
-                          {availableColumns.slice(0, 5).map((col) => (
-                            <td key={col} className="p-3">
-                              {String(row[col] || '')}
-                            </td>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Data Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-lg overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-secondary">
+                        <tr>
+                          {availableColumns.slice(0, 4).map((col) => (
+                            <th key={col} className="p-2 text-left font-medium text-xs">
+                              {col}
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Showing first 10 rows of {data.length} total records
-                </p>
-              </div>
+                      </thead>
+                      <tbody>
+                        {data.slice(0, 5).map((row, index) => (
+                          <tr key={index} className="border-t">
+                            {availableColumns.slice(0, 4).map((col) => (
+                              <td key={col} className="p-2 text-xs">
+                                {String(row[col] || '').substring(0, 20)}...
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Showing first 5 rows of {data.length} total records
+                  </p>
+                </CardContent>
+              </Card>
             </>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
