@@ -157,6 +157,20 @@ const agentPersonas = {
       // Pass sql_data to visualization component if available
       if (data.sql_data && onDataReceived) {
         onDataReceived(data.sql_data);
+        
+        // Add data table to message content if sql_data exists
+        const dataTableMarkdown = generateDataTableMarkdown(data.sql_data);
+        if (dataTableMarkdown) {
+          setMessages(prev => prev.map(msg => {
+            if (msg.id === assistantMessageId) {
+              return {
+                ...msg,
+                content: msg.content + '\n\n' + dataTableMarkdown
+              };
+            }
+            return msg;
+          }));
+        }
       }
 
       // After streaming is complete, check for insights and followup questions
@@ -309,6 +323,28 @@ const agentPersonas = {
     );
   };
 
+  const generateDataTableMarkdown = (data: Record<string, any>[]) => {
+    if (!data || data.length === 0) return '';
+    
+    const firstFiveRows = data.slice(0, 5);
+    const headers = Object.keys(firstFiveRows[0]);
+    
+    let markdown = '\n## Data Sample (First 5 rows)\n\n';
+    markdown += '| ' + headers.join(' | ') + ' |\n';
+    markdown += '|' + headers.map(() => '---').join('|') + '|\n';
+    
+    firstFiveRows.forEach(row => {
+      const values = headers.map(header => {
+        const value = row[header];
+        return value !== null && value !== undefined ? String(value) : '';
+      });
+      markdown += '| ' + values.join(' | ') + ' |\n';
+    });
+    
+    markdown += `\n*Showing 5 of ${data.length} total rows*\n`;
+    return markdown;
+  };
+
   const sendFeedback = async (type: 'good' | 'bad') => {
     if (!conversationId) return;
 
@@ -395,7 +431,7 @@ const agentPersonas = {
                     </div>
                   )}
                   
-                  <div className="flex items-start justify-between gap-2">
+                   <div className="flex items-start justify-between gap-2">
                     {message.sender === 'assistant' ? (
                       <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
