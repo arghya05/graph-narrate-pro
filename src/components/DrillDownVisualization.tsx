@@ -319,6 +319,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                   <CardContent className="pt-0 pb-4">
                      <div className="h-64 w-full">
                        <D3Chart
+                         key={`${chart.variable}-${chart.chartType}-${chart.data.length}`}
                          data={chart.data}
                          chartType={chart.chartType as any}
                          xKey={chart.chartType === 'histogram' ? 'range' : 'name'}
@@ -377,6 +378,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                     <CardContent className="pt-0">
                      <div className="h-64">
                          <D3Chart
+                           key={`${chart.var1}-${chart.var2}-${chart.chartType}-${chart.data.length}`}
                            data={chart.data}
                            chartType={chart.chartType as any}
                            xKey={chart.chartType === 'scatter' ? 'x' : 'category'}

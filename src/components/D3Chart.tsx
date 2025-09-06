@@ -13,6 +13,7 @@ interface D3ChartProps {
 
 export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250, title }: D3ChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const chartId = `chart-${Math.random().toString(36).substr(2, 9)}`;
 
   useEffect(() => {
     if (!svgRef.current || !data || data.length === 0) return;
@@ -41,8 +42,8 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .domain([0, d3.max(data, d => d[yKey]) || 0])
         .range([innerHeight, 0]);
 
-      // Create gradient with unique ID
-      const gradientId = `bar-gradient-${Math.random().toString(36).substr(2, 9)}`;
+      // Create gradient with unique ID based on chart
+      const gradientId = `bar-gradient-${chartId}`;
       const gradient = svg
         .append('defs')
         .append('linearGradient')
@@ -132,7 +133,7 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .call(xAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '11px')
+        .style('font-size', '9px')
         .attr('transform', 'rotate(-45)')
         .style('text-anchor', 'end')
         .attr('dx', '-0.8em')
@@ -144,7 +145,7 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .call(yAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '11px');
+        .style('font-size', '9px');
 
       // Y axis label
       if (title) {
@@ -206,8 +207,8 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .domain(d3.extent(data, d => d[yKey]) as [number, number])
         .range([innerHeight, 0]);
 
-      // Create gradient for scatter points with unique ID
-      const gradientId = `circle-gradient-${Math.random().toString(36).substr(2, 9)}`;
+      // Create gradient for scatter points with unique ID based on chart
+      const gradientId = `circle-gradient-${chartId}`;
       const gradient = svg
         .append('defs')
         .append('radialGradient')
@@ -269,14 +270,14 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .call(xAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '11px');
+        .style('font-size', '9px');
 
       g.append('g')
         .attr('class', 'y-axis')
         .call(yAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '11px');
+        .style('font-size', '9px');
 
       // Axis labels
       g.append('text')
