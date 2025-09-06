@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { D3Chart } from '@/components/D3Chart';
-import { BarChart3, ArrowLeft, TrendingUp, Filter, ChevronDown } from 'lucide-react';
+import { BarChart3, ArrowLeft, TrendingUp, Filter, ChevronDown, MoreVertical, BarChart, LineChart, PieChart } from 'lucide-react';
 
 interface ColumnInfo {
   name: string;
@@ -34,6 +35,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
   }>>([]);
   const [selectedVariables, setSelectedVariables] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [chartTypes, setChartTypes] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (data && data.length > 0) {
@@ -92,6 +94,14 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
       const column = columnsInfo[i];
       if (!column) continue;
 
+      // Set default chart type if not already set
+      if (!chartTypes[column.name]) {
+        setChartTypes(prev => ({
+          ...prev,
+          [column.name]: column.data_type === 'numeric' ? 'histogram' : 'bar'
+        }));
+      }
+
       if (column.data_type === 'numeric') {
         // Create histogram data
         const values = data.map(row => row[column.name]).filter(v => v != null);
@@ -113,7 +123,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
 
         charts.push({
           variable: column.name,
-          chartType: 'histogram',
+          chartType: chartTypes[column.name] || 'histogram',
           data: histData
         });
       } else if (column.data_type === 'categorical') {
@@ -133,7 +143,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
 
         charts.push({
           variable: column.name,
-          chartType: 'bar',
+          chartType: chartTypes[column.name] || 'bar',
           data: barData
         });
       }
@@ -284,6 +294,29 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
     selectedVariables.includes(chart.variable)
   );
 
+  const handleChartTypeChange = (variable: string, newChartType: string) => {
+    setChartTypes(prev => ({
+      ...prev,
+      [variable]: newChartType
+    }));
+    // Regenerate charts with new type
+    setTimeout(() => generateSingleVariableCharts(), 0);
+  };
+
+  const getChartIcon = (chartType: string) => {
+    switch (chartType) {
+      case 'bar':
+      case 'histogram':
+        return BarChart;
+      case 'line':
+        return LineChart;
+      case 'pie':
+        return PieChart;
+      default:
+        return BarChart;
+    }
+  };
+
   if (!data || data.length === 0) {
     return (
       <Card>
@@ -382,9 +415,41 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                       <CardTitle className="text-sm font-medium">
                         {chart.variable}
                       </CardTitle>
-                      <Badge variant="outline" className="text-xs">
-                        {chart.chartType}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {chart.chartType}
+                        </Badge>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <MoreVertical className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-36 bg-popover border border-border shadow-lg z-50">
+                            <DropdownMenuItem 
+                              onClick={() => handleChartTypeChange(chart.variable, 'bar')}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <BarChart className="h-3 w-3" />
+                              Bar Chart
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleChartTypeChange(chart.variable, 'line')}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <LineChart className="h-3 w-3" />
+                              Line Chart
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleChartTypeChange(chart.variable, 'histogram')}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <BarChart3 className="h-3 w-3" />
+                              Histogram
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0 pb-4">
