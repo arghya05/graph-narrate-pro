@@ -164,7 +164,7 @@ const agentPersonas = {
       console.error('Error sending message:', error);
       toast({
         title: "Connection Error",
-        description: "Cannot connect to the chat server. Please check if the backend service is running on localhost:9090",
+        description: "Cannot connect to the chat server. Please check if the backend service is running on localhost:9099",
         variant: "destructive",
       });
       
@@ -255,62 +255,17 @@ const agentPersonas = {
   };
 
   const sendVoiceMessage = async (audioBlob: Blob) => {
-    const formData = new FormData();
-    formData.append('audio_file', audioBlob, 'audio.wav');
-    if (conversationId) {
-      formData.append('session_id', conversationId);
-    }
-
+    // For now, convert to text placeholder since the API only accepts JSON
+    const voiceText = "Voice message (audio transcription not available)";
+    
     try {
-      const response = await fetch(api.endpoints.chat, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Failed to send voice message');
-
-      const data = await response.json();
-      
-      // Create user message with audio file
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        content: 'Voice message', // Placeholder since we don't have transcription
-        sender: 'user',
-        timestamp: new Date(),
-        type: 'voice'
-      };
-      setMessages(prev => [...prev, userMessage]);
-
-      // Create assistant message with response
-      const assistantMessageId = (Date.now() + 1).toString();
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        content: data.analysis || '',
-        sender: 'assistant',
-        timestamp: new Date(),
-        type: 'text',
-        metadata: {
-          agent_type: 'chat'
-        }
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Update conversation ID
-      if (data.session_id) {
-        setConversationId(data.session_id);
-      }
-
-      // After streaming is complete, check for insights and followup questions
-      if (conversationId && assistantMessageId) {
-        checkCustomerInsights(conversationId);
-        fetchFollowupQuestions(conversationId, assistantMessageId);
-      }
+      await sendMessage(voiceText, 'voice');
 
     } catch (error) {
       console.error('Error sending voice message:', error);
       toast({
-        title: "Connection Error",
-        description: "Cannot connect to the chat server. Please check if the backend service is running on localhost:9099",
+        title: "Voice Error",
+        description: "Could not process voice message",
         variant: "destructive",
       });
     }
