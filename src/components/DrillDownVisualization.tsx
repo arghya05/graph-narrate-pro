@@ -80,7 +80,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
       data: any[];
     }> = [];
 
-    const maxCharts = Math.min(columnsInfo.length, 6);
+    const maxCharts = columnsInfo.length;
     
     for (let i = 0; i < maxCharts; i++) {
       const column = columnsInfo[i];
@@ -286,39 +286,6 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
     <div className="h-full flex">
       {/* Main Charts Grid */}
       <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/2' : 'w-full'}`}>
-        {/* Summary Metrics */}
-        <div className="flex-shrink-0 p-4 border-b border-border/50">
-          <div className="flex items-center gap-2 mb-3">
-            <BarChart3 className="h-4 w-4" />
-            <h3 className="font-medium text-sm">Key Metrics</h3>
-            <Badge variant="outline" className="ml-auto text-xs">
-              {data.length} records
-            </Badge>
-          </div>
-          <ScrollArea className="w-full">
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 pb-2">
-              {summaryMetrics.map((metric, index) => (
-                <Card key={index} className="bg-card border-border/50">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        {metric.title}
-                      </CardTitle>
-                      {metric.change && (
-                        <span className="text-xs px-1.5 py-0.5 rounded text-muted-foreground">
-                          {metric.change}
-                        </span>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="text-2xl font-bold">{metric.value}</div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
         
         {/* Variable Charts Grid */}
         <div className="flex-1 p-4">
@@ -331,8 +298,8 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
               Click on any chart to explore relationships with other variables
             </p>
           </div>
-          <ScrollArea className="h-[calc(100vh-200px)]">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
+          <ScrollArea className="h-[calc(100vh-160px)]">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-6">
               {singleVarCharts.map((chart, index) => (
                 <Card 
                   key={`${chart.variable}-${index}`}
