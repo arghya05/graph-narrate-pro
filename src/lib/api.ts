@@ -1,5 +1,5 @@
 // Centralized API configuration
-const BASE_URL = 'http://localhost:9099';
+const BASE_URL = 'http://localhost:9090';
 
 export const api = {
   baseUrl: BASE_URL,

@@ -164,7 +164,7 @@ const agentPersonas = {
       console.error('Error sending message:', error);
       toast({
         title: "Connection Error",
-        description: "Cannot connect to the chat server. Please check if the backend service is running on localhost:9099",
+        description: "Cannot connect to the chat server. Please check if the backend service is running on localhost:9090",
         variant: "destructive",
       });
       
