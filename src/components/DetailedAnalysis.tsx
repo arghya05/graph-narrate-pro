@@ -124,7 +124,7 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
   };
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background min-h-[600px]">
       <Card className="h-full border-0 shadow-none">
         <CardHeader className="pb-4 border-b">
           <div className="flex items-center justify-between">
@@ -134,7 +134,7 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto p-6">
+        <CardContent className="flex-1 overflow-y-auto p-6 max-h-[calc(100vh-200px)]">
           <div className="space-y-6">
           {/* Variable Selection */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
