@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Chart } from '@/components/Chart';
+import { D3Chart } from '@/components/D3Chart';
 import { BarChart3, ArrowLeft, TrendingUp } from 'lucide-react';
 
 interface ColumnInfo {
@@ -318,12 +318,13 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                   </CardHeader>
                   <CardContent className="pt-0 pb-4">
                     <div className="h-48 w-full">
-                      <Chart
-                        title=""
+                      <D3Chart
                         data={chart.data}
                         chartType={chart.chartType as any}
                         xKey={chart.chartType === 'histogram' ? 'range' : 'name'}
                         yKey={chart.chartType === 'histogram' ? 'count' : 'count'}
+                        width={350}
+                        height={192}
                       />
                     </div>
                   </CardContent>
@@ -374,12 +375,13 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="h-48">
-                        <Chart
-                          title=""
+                        <D3Chart
                           data={chart.data}
                           chartType={chart.chartType as any}
                           xKey={chart.chartType === 'scatter' ? 'x' : 'category'}
                           yKey={chart.chartType === 'scatter' ? 'y' : 'average'}
+                          width={300}
+                          height={192}
                         />
                       </div>
                     </CardContent>
