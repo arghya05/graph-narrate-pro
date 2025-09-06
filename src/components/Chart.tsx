@@ -3,25 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { 
-  BarChart, 
-  Bar, 
-  LineChart, 
-  Line, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  Area, 
-  AreaChart 
-} from 'recharts';
 import { ChartType } from '@/lib/api';
 import { MoreHorizontal, Maximize2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { D3Chart } from './D3Chart';
 
 interface ChartProps {
   title: string;
@@ -35,13 +20,6 @@ interface ChartProps {
   description?: string;
 }
 
-const COLORS = [
-  'hsl(262, 83%, 58%)',
-  'hsl(262, 83%, 70%)',
-  'hsl(220, 14.3%, 95.9%)',
-  'hsl(220, 8.9%, 46.1%)',
-  'hsl(0, 84.2%, 60.2%)',
-];
 
 export function Chart({ 
   title, 
@@ -71,111 +49,17 @@ export function Chart({
       );
     }
 
-    switch (selectedType) {
-      case 'bar':
-        return (
-          <ResponsiveContainer width="100%" height={height}>
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-              <XAxis dataKey={xKey} stroke="hsl(220, 8.9%, 46.1%)" interval="preserveStartEnd" tick={{ fontSize: 10 }} />
-              <YAxis stroke="hsl(220, 8.9%, 46.1%)" tick={{ fontSize: 10 }} />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'hsl(0, 0%, 100%)',
-                  border: '1px solid hsl(220, 13%, 91%)',
-                  borderRadius: '0.75rem'
-                }}
-              />
-              <Bar dataKey={yKey} fill="hsl(262, 83%, 58%)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        );
-
-      case 'line':
-        return (
-          <ResponsiveContainer width="100%" height={height}>
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-              <XAxis dataKey={xKey} stroke="hsl(220, 8.9%, 46.1%)" interval="preserveStartEnd" tick={{ fontSize: 10 }} />
-              <YAxis stroke="hsl(220, 8.9%, 46.1%)" tick={{ fontSize: 10 }} />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'hsl(0, 0%, 100%)',
-                  border: '1px solid hsl(220, 13%, 91%)',
-                  borderRadius: '0.75rem'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey={yKey} 
-                stroke="hsl(262, 83%, 58%)" 
-                strokeWidth={3}
-                dot={{ fill: 'hsl(262, 83%, 58%)', strokeWidth: 2, r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        );
-
-      case 'area':
-        return (
-          <ResponsiveContainer width="100%" height={height}>
-            <AreaChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-              <XAxis dataKey={xKey} stroke="hsl(220, 8.9%, 46.1%)" interval="preserveStartEnd" tick={{ fontSize: 10 }} />
-              <YAxis stroke="hsl(220, 8.9%, 46.1%)" tick={{ fontSize: 10 }} />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'hsl(0, 0%, 100%)',
-                  border: '1px solid hsl(220, 13%, 91%)',
-                  borderRadius: '0.75rem'
-                }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey={yKey} 
-                stroke="hsl(262, 83%, 58%)" 
-                fill="hsl(262, 83%, 58%)"
-                fillOpacity={0.2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        );
-
-      case 'pie':
-        return (
-          <ResponsiveContainer width="100%" height={height}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                fill="hsl(262, 83%, 58%)"
-                dataKey={yKey}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              >
-                {data.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'hsl(0, 0%, 100%)',
-                  border: '1px solid hsl(220, 13%, 91%)',
-                  borderRadius: '0.75rem'
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        );
-
-      default:
-        return (
-          <div className="h-64 flex items-center justify-center text-muted-foreground">
-            Chart type not supported
-          </div>
-        );
-    }
+    return (
+      <D3Chart
+        data={data}
+        chartType={selectedType}
+        xKey={xKey}
+        yKey={yKey}
+        width={500}
+        height={height}
+        title=""
+      />
+    );
   };
 
   return (

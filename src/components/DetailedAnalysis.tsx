@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Chart } from './Chart';
+import { D3Chart } from './D3Chart';
 import { MetricCard } from './MetricCard';
 import { apiClient, api, ChartType, TwoLevelAnalysisResponse } from '@/lib/api';
 import { Loader2, TrendingUp, BarChart3, PieChart } from 'lucide-react';
@@ -221,13 +221,14 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
                       <CardTitle className="text-base">Distribution by {selectedVar1}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Chart
-                        title=""
+                      <D3Chart
                         data={getLevel1Data()}
                         chartType="bar"
-                        onChartTypeChange={() => {}}
-                        availableTypes={['bar', 'pie', 'line']}
-                        description={`Analysis of ${selectedVar1} distribution`}
+                        xKey="name"
+                        yKey="value"
+                        width={500}
+                        height={300}
+                        title=""
                       />
                     </CardContent>
                   </Card>
@@ -239,13 +240,14 @@ export function DetailedAnalysis({ open, onOpenChange, data, title }: DetailedAn
                       <CardTitle className="text-base">Combined Analysis: {selectedVar1} × {selectedVar2}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <Chart
-                        title=""
+                      <D3Chart
                         data={getLevel2Data()}
                         chartType="bar"
-                        onChartTypeChange={() => {}}
-                        availableTypes={['bar', 'area', 'line']}
-                        description={`Top combinations of ${selectedVar1} and ${selectedVar2}`}
+                        xKey="name"
+                        yKey="value"
+                        width={500}
+                        height={300}
+                        title=""
                       />
                     </CardContent>
                   </Card>

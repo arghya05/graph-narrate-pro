@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 
 interface D3ChartProps {
   data: any[];
-  chartType: 'bar' | 'histogram' | 'scatter' | 'line' | 'pie';
+  chartType: 'bar' | 'line' | 'scatter' | 'pie' | 'histogram' | 'box' | 'heatmap' | 'area' | 'violin' | 'sunburst' | 'treemap';
   xKey: string;
   yKey: string;
   width?: number;
@@ -516,6 +516,166 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .style('font-size', '10px')
         .style('fill', 'hsl(var(--muted-foreground))')
         .text(title || 'Data Trend');
+
+      // Style axis lines
+      g.selectAll('.domain')
+        .style('stroke', 'hsl(var(--border))');
+      
+      g.selectAll('.tick line')
+        .style('stroke', 'hsl(var(--border))');
+
+    } else if (chartType === 'area') {
+      // Create scales for area chart
+      const xScale = d3
+        .scaleLinear()
+        .domain([0, data.length - 1])
+        .range([0, innerWidth]);
+
+      const yScale = d3
+        .scaleLinear()
+        .domain([0, d3.max(data, d => d[yKey]) || 0])
+        .range([innerHeight, 0]);
+
+      // Create gradient for area fill
+      const gradientId = `area-gradient-${chartId}`;
+      const gradient = svg
+        .append('defs')
+        .append('linearGradient')
+        .attr('id', gradientId)
+        .attr('gradientUnits', 'userSpaceOnUse')
+        .attr('x1', 0).attr('y1', 0)
+        .attr('x2', 0).attr('y2', innerHeight);
+
+      gradient
+        .append('stop')
+        .attr('offset', '0%')
+        .attr('stop-color', 'hsl(var(--primary))')
+        .attr('stop-opacity', 0.8);
+
+      gradient
+        .append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', 'hsl(var(--primary))')
+        .attr('stop-opacity', 0.1);
+
+      // Create area generator
+      const area = d3
+        .area<any>()
+        .x((d, i) => xScale(i))
+        .y0(innerHeight)
+        .y1(d => yScale(d[yKey]))
+        .curve(d3.curveMonotoneX);
+
+      // Create line generator for top edge
+      const line = d3
+        .line<any>()
+        .x((d, i) => xScale(i))
+        .y(d => yScale(d[yKey]))
+        .curve(d3.curveMonotoneX);
+
+      // Add area path with animation
+      const areaPath = g
+        .append('path')
+        .datum(data)
+        .attr('fill', `url(#${gradientId})`)
+        .attr('stroke', 'none')
+        .attr('d', area);
+
+      // Add line path on top
+      const linePath = g
+        .append('path')
+        .datum(data)
+        .attr('fill', 'none')
+        .attr('stroke', 'hsl(var(--primary))')
+        .attr('stroke-width', 2)
+        .attr('stroke-linejoin', 'round')
+        .attr('stroke-linecap', 'round')
+        .attr('d', line);
+
+      // Add data points
+      g.selectAll('.dot')
+        .data(data)
+        .enter()
+        .append('circle')
+        .attr('class', 'dot')
+        .attr('cx', (d, i) => xScale(i))
+        .attr('cy', d => yScale(d[yKey]))
+        .attr('r', 3)
+        .attr('fill', 'hsl(var(--primary))')
+        .style('opacity', 0)
+        .transition()
+        .delay((d, i) => i * 50)
+        .duration(500)
+        .style('opacity', 1);
+
+      // Add hover effects
+      g.selectAll('.dot')
+        .on('mouseover', function(event, d) {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('r', 5)
+            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))');
+          
+          // Add tooltip
+          const tooltip = g.append('g').attr('class', 'tooltip');
+          const rect = tooltip
+            .append('rect')
+            .attr('x', xScale(data.indexOf(d)) - 30)
+            .attr('y', yScale(d[yKey]) - 35)
+            .attr('width', 60)
+            .attr('height', 25)
+            .attr('fill', 'hsl(var(--background))')
+            .attr('stroke', 'hsl(var(--border))')
+            .attr('rx', 4);
+          
+          tooltip
+            .append('text')
+            .attr('x', xScale(data.indexOf(d)))
+            .attr('y', yScale(d[yKey]) - 18)
+            .attr('text-anchor', 'middle')
+            .attr('fill', 'hsl(var(--foreground))')
+            .style('font-size', '12px')
+            .text(d[yKey]);
+        })
+        .on('mouseout', function() {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('r', 3)
+            .style('filter', 'none');
+          
+          g.select('.tooltip').remove();
+        });
+
+      // Add axes with limited ticks (max 15)
+      const maxTicks = Math.min(15, data.length);
+      const xAxis = d3.axisBottom(xScale).ticks(maxTicks).tickFormat((d, i) => {
+        const dataIndex = Math.floor(Number(d));
+        return data[dataIndex] ? String(data[dataIndex][xKey]).substring(0, 8) : '';
+      });
+      const yAxis = d3.axisLeft(yScale).ticks(Math.min(15, 8));
+
+      // X axis
+      g.append('g')
+        .attr('class', 'x-axis')
+        .attr('transform', `translate(0,${innerHeight})`)
+        .call(xAxis)
+        .selectAll('text')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '7px')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end')
+        .attr('dx', '-0.8em')
+        .attr('dy', '0.15em');
+
+      // Y axis
+      g.append('g')
+        .attr('class', 'y-axis')
+        .call(yAxis)
+        .selectAll('text')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '7px');
 
       // Style axis lines
       g.selectAll('.domain')
