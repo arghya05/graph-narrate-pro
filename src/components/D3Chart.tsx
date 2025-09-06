@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 
 interface D3ChartProps {
   data: any[];
-  chartType: 'bar' | 'histogram' | 'scatter';
+  chartType: 'bar' | 'histogram' | 'scatter' | 'line';
   xKey: string;
   yKey: string;
   width?: number;
@@ -315,6 +315,206 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .style('font-size', '10px')
         .style('fill', 'hsl(var(--muted-foreground))')
         .text('Data Points');
+
+      // Style axis lines
+      g.selectAll('.domain')
+        .style('stroke', 'hsl(var(--border))');
+      
+      g.selectAll('.tick line')
+        .style('stroke', 'hsl(var(--border))');
+
+    } else if (chartType === 'line') {
+      // Create scales for line chart
+      const xScale = d3
+        .scaleLinear()
+        .domain(d3.extent(data, (d, i) => i) as [number, number])
+        .range([0, innerWidth]);
+
+      const yScale = d3
+        .scaleLinear()
+        .domain(d3.extent(data, d => d[yKey]) as [number, number])
+        .range([innerHeight, 0]);
+
+      // Create gradient for line with unique ID based on chart
+      const gradientId = `line-gradient-${chartId}`;
+      const gradient = svg
+        .append('defs')
+        .append('linearGradient')
+        .attr('id', gradientId)
+        .attr('gradientUnits', 'userSpaceOnUse')
+        .attr('x1', 0).attr('y1', innerHeight)
+        .attr('x2', 0).attr('y2', 0);
+
+      gradient
+        .append('stop')
+        .attr('offset', '0%')
+        .attr('stop-color', 'hsl(var(--primary))')
+        .attr('stop-opacity', 0.3);
+
+      gradient
+        .append('stop')
+        .attr('offset', '100%')
+        .attr('stop-color', 'hsl(var(--primary))')
+        .attr('stop-opacity', 0.8);
+
+      // Create line generator
+      const line = d3
+        .line<any>()
+        .x((d, i) => xScale(i))
+        .y(d => yScale(d[yKey]))
+        .curve(d3.curveMonotoneX);
+
+      // Add line path with animation
+      const path = g
+        .append('path')
+        .datum(data)
+        .attr('fill', 'none')
+        .attr('stroke', 'hsl(var(--primary))')
+        .attr('stroke-width', 3)
+        .attr('stroke-linejoin', 'round')
+        .attr('stroke-linecap', 'round')
+        .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
+        .attr('d', line);
+
+      // Animate line drawing
+      const totalLength = path.node()?.getTotalLength() || 0;
+      path
+        .attr('stroke-dasharray', totalLength + ' ' + totalLength)
+        .attr('stroke-dashoffset', totalLength)
+        .transition()
+        .duration(1200)
+        .ease(d3.easeLinear)
+        .attr('stroke-dashoffset', 0);
+
+      // Add data points
+      g.selectAll('.dot')
+        .data(data)
+        .enter()
+        .append('circle')
+        .attr('class', 'dot')
+        .attr('cx', (d, i) => xScale(i))
+        .attr('cy', d => yScale(d[yKey]))
+        .attr('r', 0)
+        .attr('fill', 'hsl(var(--primary))')
+        .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))')
+        .transition()
+        .duration(600)
+        .delay((d, i) => i * 50)
+        .ease(d3.easeElasticOut)
+        .attr('r', 4);
+
+      // Add hover effects for data points
+      g.selectAll('.dot')
+        .on('mouseover', function(event, d) {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('r', 6)
+            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))');
+          
+          // Add tooltip
+          const tooltip = g.append('g').attr('class', 'tooltip');
+          const xPos = Number(d3.select(this).attr('cx'));
+          const yPos = Number(d3.select(this).attr('cy'));
+          
+          tooltip
+            .append('rect')
+            .attr('x', xPos - 30)
+            .attr('y', yPos - 35)
+            .attr('width', 60)
+            .attr('height', 25)
+            .attr('fill', 'hsl(var(--background))')
+            .attr('stroke', 'hsl(var(--border))')
+            .attr('rx', 4);
+          
+          tooltip
+            .append('text')
+            .attr('x', xPos)
+            .attr('y', yPos - 18)
+            .attr('text-anchor', 'middle')
+            .attr('fill', 'hsl(var(--foreground))')
+            .style('font-size', '12px')
+            .text(d[yKey]);
+        })
+        .on('mouseout', function() {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .attr('r', 4)
+            .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))');
+          
+          g.select('.tooltip').remove();
+        });
+
+      // Add axes with limited ticks (max 15)
+      const maxTicks = Math.min(15, data.length);
+      const xAxis = d3.axisBottom(xScale).ticks(maxTicks).tickFormat((d, i) => {
+        const dataIndex = Math.floor(Number(d));
+        return data[dataIndex] ? String(data[dataIndex][xKey]).substring(0, 8) : '';
+      });
+      const yAxis = d3.axisLeft(yScale).ticks(Math.min(15, 8));
+
+      // X axis
+      g.append('g')
+        .attr('class', 'x-axis')
+        .attr('transform', `translate(0,${innerHeight})`)
+        .call(xAxis)
+        .selectAll('text')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '7px')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end')
+        .attr('dx', '-0.8em')
+        .attr('dy', '0.15em');
+
+      // Y axis
+      g.append('g')
+        .attr('class', 'y-axis')
+        .call(yAxis)
+        .selectAll('text')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '7px');
+
+      // Axis labels
+      g.append('text')
+        .attr('transform', `translate(${innerWidth / 2}, ${innerHeight + margin.bottom - 10})`)
+        .style('text-anchor', 'middle')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '12px')
+        .style('font-weight', '500')
+        .text(xKey);
+
+      g.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 0 - margin.left)
+        .attr('x', 0 - (innerHeight / 2))
+        .attr('dy', '1em')
+        .style('text-anchor', 'middle')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '12px')
+        .style('font-weight', '500')
+        .text(yKey);
+
+      // Legend for line chart
+      const legend = g.append('g')
+        .attr('class', 'legend')
+        .attr('transform', `translate(${innerWidth + 10}, 20)`);
+
+      legend.append('line')
+        .attr('x1', 0)
+        .attr('y1', 6)
+        .attr('x2', 12)
+        .attr('y2', 6)
+        .attr('stroke', 'hsl(var(--primary))')
+        .attr('stroke-width', 3);
+
+      legend.append('text')
+        .attr('x', 16)
+        .attr('y', 6)
+        .attr('dy', '0.35em')
+        .style('font-size', '10px')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .text(title || 'Data Trend');
 
       // Style axis lines
       g.selectAll('.domain')

@@ -444,6 +444,16 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                             <DropdownMenuItem 
                               onClick={(e) => {
                                 e.stopPropagation();
+                                handleChartTypeChange(chart.variable, 'line');
+                              }}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <LineChart className="h-3 w-3" />
+                              Line Chart
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 handleChartTypeChange(chart.variable, 'histogram');
                               }}
                               className="flex items-center gap-2 cursor-pointer"
