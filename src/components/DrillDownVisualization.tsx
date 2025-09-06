@@ -320,33 +320,43 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
             </p>
             
             {/* Multi-select filter */}
-            <Card className="p-3 mb-4 bg-card/30">
-              <div className="flex items-center gap-2 mb-3">
-                <Filter className="h-3 w-3" />
-                <span className="text-xs font-medium">Filter Variables</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                {columnsInfo.map(column => (
-                  <div key={column.name} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={column.name}
-                      checked={selectedVariables.includes(column.name)}
-                      onCheckedChange={() => handleVariableToggle(column.name)}
-                    />
-                    <label
-                      htmlFor={column.name}
-                      className="text-xs cursor-pointer truncate flex-1"
-                      title={column.name}
-                    >
-                      {column.name}
-                    </label>
-                    <Badge variant="secondary" className="text-[10px] px-1">
-                      {column.data_type}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            {columnsInfo.length > 0 && (
+              <Card className="p-3 mb-4 bg-card/30 border-border/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Filter className="h-3 w-3" />
+                  <span className="text-xs font-medium">Filter Variables ({columnsInfo.length} total)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                  {columnsInfo.map(column => (
+                    <div key={column.name} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={column.name}
+                        checked={selectedVariables.includes(column.name)}
+                        onCheckedChange={() => handleVariableToggle(column.name)}
+                      />
+                      <label
+                        htmlFor={column.name}
+                        className="text-xs cursor-pointer truncate flex-1"
+                        title={column.name}
+                      >
+                        {column.name}
+                      </label>
+                      <Badge variant="secondary" className="text-[10px] px-1">
+                        {column.data_type}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+            
+            {columnsInfo.length === 0 && (
+              <Card className="p-3 mb-4 bg-muted/20 border-border/50">
+                <p className="text-xs text-muted-foreground text-center">
+                  Upload data to see variable filters
+                </p>
+              </Card>
+            )}
           </div>
           <ScrollArea className="h-[calc(100vh-280px)]">
             <div className="space-y-4 pb-6">
