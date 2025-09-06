@@ -285,7 +285,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
   return (
     <div className="h-full flex">
       {/* Main Charts Grid */}
-      <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/2' : 'w-full'}`}>
+      <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/3' : 'w-full'}`}>
         
         {/* Variable Charts Grid */}
         <div className="flex-1 p-4">
@@ -336,7 +336,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
 
       {/* Slide-out Analysis Panel */}
       {selectedVariable && (
-        <div className="w-1/2 border-l border-border/50 bg-card/30 transition-all duration-300">
+        <div className="w-2/3 border-l border-border/50 bg-card/30 transition-all duration-300">
           <div className="h-full flex flex-col">
             <div className="flex-shrink-0 p-4 border-b border-border/50">
               <div className="flex items-center justify-between">
