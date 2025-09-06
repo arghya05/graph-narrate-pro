@@ -35,9 +35,9 @@ export function DataPreviewModal({ data }: DataPreviewModalProps) {
             </Badge>
           </DialogTitle>
         </DialogHeader>
-        <ScrollArea className="h-[60vh] w-full">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
+        <div className="h-[60vh] overflow-auto">
+          <div className="min-w-max">
+            <table className="w-full text-sm border-collapse min-w-max">
               <thead className="sticky top-0 bg-background">
                 <tr className="border-b border-border">
                   <th className="text-left p-3 font-medium text-muted-foreground bg-background">
@@ -73,7 +73,7 @@ export function DataPreviewModal({ data }: DataPreviewModalProps) {
               Showing first 10 of {data.length} rows
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
