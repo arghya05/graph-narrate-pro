@@ -317,16 +317,17 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0 pb-4">
-                    <div className="h-48 w-full">
-                      <D3Chart
-                        data={chart.data}
-                        chartType={chart.chartType as any}
-                        xKey={chart.chartType === 'histogram' ? 'range' : 'name'}
-                        yKey={chart.chartType === 'histogram' ? 'count' : 'count'}
-                        width={350}
-                        height={192}
-                      />
-                    </div>
+                     <div className="h-64 w-full">
+                       <D3Chart
+                         data={chart.data}
+                         chartType={chart.chartType as any}
+                         xKey={chart.chartType === 'histogram' ? 'range' : 'name'}
+                         yKey={chart.chartType === 'histogram' ? 'count' : 'count'}
+                         width={500}
+                         height={250}
+                         title={chart.variable}
+                       />
+                     </div>
                   </CardContent>
                 </Card>
               ))}
@@ -374,16 +375,17 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="h-48">
-                        <D3Chart
-                          data={chart.data}
-                          chartType={chart.chartType as any}
-                          xKey={chart.chartType === 'scatter' ? 'x' : 'category'}
-                          yKey={chart.chartType === 'scatter' ? 'y' : 'average'}
-                          width={300}
-                          height={192}
-                        />
-                      </div>
+                     <div className="h-64">
+                         <D3Chart
+                           data={chart.data}
+                           chartType={chart.chartType as any}
+                           xKey={chart.chartType === 'scatter' ? 'x' : 'category'}
+                           yKey={chart.chartType === 'scatter' ? 'y' : 'average'}
+                           width={450}
+                           height={250}
+                           title={`${chart.var1} vs ${chart.var2}`}
+                         />
+                       </div>
                     </CardContent>
                   </Card>
                 ))}

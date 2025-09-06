@@ -8,9 +8,10 @@ interface D3ChartProps {
   yKey: string;
   width?: number;
   height?: number;
+  title?: string;
 }
 
-export function D3Chart({ data, chartType, xKey, yKey, width = 400, height = 200 }: D3ChartProps) {
+export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250, title }: D3ChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 400, height = 200
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+    const margin = { top: 30, right: 120, bottom: 80, left: 60 };
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -40,11 +41,12 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 400, height = 200
         .domain([0, d3.max(data, d => d[yKey]) || 0])
         .range([innerHeight, 0]);
 
-      // Create gradient
+      // Create gradient with unique ID
+      const gradientId = `bar-gradient-${Math.random().toString(36).substr(2, 9)}`;
       const gradient = svg
         .append('defs')
         .append('linearGradient')
-        .attr('id', 'bar-gradient')
+        .attr('id', gradientId)
         .attr('gradientUnits', 'userSpaceOnUse')
         .attr('x1', 0).attr('y1', innerHeight)
         .attr('x2', 0).attr('y2', 0);
@@ -71,7 +73,7 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 400, height = 200
         .attr('y', innerHeight)
         .attr('width', xScale.bandwidth())
         .attr('height', 0)
-        .attr('fill', 'url(#bar-gradient)')
+        .attr('fill', `url(#${gradientId})`)
         .attr('rx', 4)
         .attr('ry', 4)
         .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
@@ -123,20 +125,67 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 400, height = 200
       const xAxis = d3.axisBottom(xScale);
       const yAxis = d3.axisLeft(yScale);
 
+      // X axis with rotated labels
       g.append('g')
         .attr('class', 'x-axis')
         .attr('transform', `translate(0,${innerHeight})`)
         .call(xAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '10px');
+        .style('font-size', '11px')
+        .attr('transform', 'rotate(-45)')
+        .style('text-anchor', 'end')
+        .attr('dx', '-0.8em')
+        .attr('dy', '0.15em');
 
+      // Y axis
       g.append('g')
         .attr('class', 'y-axis')
         .call(yAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '10px');
+        .style('font-size', '11px');
+
+      // Y axis label
+      if (title) {
+        g.append('text')
+          .attr('transform', 'rotate(-90)')
+          .attr('y', 0 - margin.left)
+          .attr('x', 0 - (innerHeight / 2))
+          .attr('dy', '1em')
+          .style('text-anchor', 'middle')
+          .style('fill', 'hsl(var(--muted-foreground))')
+          .style('font-size', '12px')
+          .style('font-weight', '500')
+          .text(yKey);
+      }
+
+      // Legend
+      const legendData = data.slice(0, 5); // Show legend for first 5 items
+      const legend = g.append('g')
+        .attr('class', 'legend')
+        .attr('transform', `translate(${innerWidth + 10}, 20)`);
+
+      const legendItems = legend.selectAll('.legend-item')
+        .data(legendData)
+        .enter()
+        .append('g')
+        .attr('class', 'legend-item')
+        .attr('transform', (d, i) => `translate(0, ${i * 20})`);
+
+      legendItems.append('rect')
+        .attr('width', 12)
+        .attr('height', 12)
+        .attr('fill', `url(#${gradientId})`)
+        .attr('rx', 2);
+
+      legendItems.append('text')
+        .attr('x', 16)
+        .attr('y', 6)
+        .attr('dy', '0.35em')
+        .style('font-size', '10px')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .text(d => String(d[xKey]).substring(0, 12) + (String(d[xKey]).length > 12 ? '...' : ''));
 
       // Style axis lines
       g.selectAll('.domain')
@@ -157,11 +206,12 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 400, height = 200
         .domain(d3.extent(data, d => d[yKey]) as [number, number])
         .range([innerHeight, 0]);
 
-      // Create gradient for scatter points
+      // Create gradient for scatter points with unique ID
+      const gradientId = `circle-gradient-${Math.random().toString(36).substr(2, 9)}`;
       const gradient = svg
         .append('defs')
         .append('radialGradient')
-        .attr('id', 'circle-gradient');
+        .attr('id', gradientId);
 
       gradient
         .append('stop')
@@ -184,7 +234,7 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 400, height = 200
         .attr('cx', d => xScale(d[xKey]))
         .attr('cy', d => yScale(d[yKey]))
         .attr('r', 0)
-        .attr('fill', 'url(#circle-gradient)')
+        .attr('fill', `url(#${gradientId})`)
         .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))')
         .transition()
         .duration(600)
@@ -219,14 +269,51 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 400, height = 200
         .call(xAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '10px');
+        .style('font-size', '11px');
 
       g.append('g')
         .attr('class', 'y-axis')
         .call(yAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '10px');
+        .style('font-size', '11px');
+
+      // Axis labels
+      g.append('text')
+        .attr('transform', `translate(${innerWidth / 2}, ${innerHeight + margin.bottom - 10})`)
+        .style('text-anchor', 'middle')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '12px')
+        .style('font-weight', '500')
+        .text(xKey);
+
+      g.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 0 - margin.left)
+        .attr('x', 0 - (innerHeight / 2))
+        .attr('dy', '1em')
+        .style('text-anchor', 'middle')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '12px')
+        .style('font-weight', '500')
+        .text(yKey);
+
+      // Legend for scatter plot
+      const legend = g.append('g')
+        .attr('class', 'legend')
+        .attr('transform', `translate(${innerWidth + 10}, 20)`);
+
+      legend.append('circle')
+        .attr('r', 6)
+        .attr('fill', `url(#${gradientId})`);
+
+      legend.append('text')
+        .attr('x', 12)
+        .attr('y', 0)
+        .attr('dy', '0.35em')
+        .style('font-size', '10px')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .text('Data Points');
 
       // Style axis lines
       g.selectAll('.domain')
