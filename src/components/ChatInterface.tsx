@@ -154,6 +154,11 @@ const agentPersonas = {
         setConversationId(data.session_id);
       }
 
+      // Pass sql_data to visualization component if available
+      if (data.sql_data && onDataReceived) {
+        onDataReceived(data.sql_data);
+      }
+
       // After streaming is complete, check for insights and followup questions
       if (conversationId) {
         checkCustomerInsights(conversationId);
