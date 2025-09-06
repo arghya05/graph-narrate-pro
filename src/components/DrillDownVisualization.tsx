@@ -34,9 +34,14 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
   useEffect(() => {
     if (data && data.length > 0) {
       analyzeColumns();
-      generateSingleVariableCharts();
     }
   }, [data]);
+
+  useEffect(() => {
+    if (columnsInfo.length > 0) {
+      generateSingleVariableCharts();
+    }
+  }, [columnsInfo, data]);
 
   const analyzeColumns = () => {
     if (!data || data.length === 0) return;
