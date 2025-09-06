@@ -133,7 +133,7 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .call(xAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '9px')
+        .style('font-size', '7px')
         .attr('transform', 'rotate(-45)')
         .style('text-anchor', 'end')
         .attr('dx', '-0.8em')
@@ -145,7 +145,7 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .call(yAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '9px');
+        .style('font-size', '7px');
 
       // Y axis label
       if (title) {
@@ -270,14 +270,14 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .call(xAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '9px');
+        .style('font-size', '7px');
 
       g.append('g')
         .attr('class', 'y-axis')
         .call(yAxis)
         .selectAll('text')
         .style('fill', 'hsl(var(--muted-foreground))')
-        .style('font-size', '9px');
+        .style('font-size', '7px');
 
       // Axis labels
       g.append('text')

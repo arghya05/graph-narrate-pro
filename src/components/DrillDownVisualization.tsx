@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import { D3Chart } from '@/components/D3Chart';
-import { BarChart3, ArrowLeft, TrendingUp } from 'lucide-react';
+import { BarChart3, ArrowLeft, TrendingUp, Filter } from 'lucide-react';
 
 interface ColumnInfo {
   name: string;
@@ -30,6 +31,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
     chartType: string;
     data: any[];
   }>>([]);
+  const [selectedVariables, setSelectedVariables] = useState<string[]>([]);
 
   useEffect(() => {
     if (data && data.length > 0) {
@@ -40,6 +42,8 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
   useEffect(() => {
     if (columnsInfo.length > 0) {
       generateSingleVariableCharts();
+      // Initialize with all variables selected
+      setSelectedVariables(columnsInfo.map(col => col.name));
     }
   }, [columnsInfo, data]);
 
@@ -266,6 +270,18 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
     return metrics;
   };
 
+  const handleVariableToggle = (variableName: string) => {
+    setSelectedVariables(prev => 
+      prev.includes(variableName) 
+        ? prev.filter(v => v !== variableName)
+        : [...prev, variableName]
+    );
+  };
+
+  const filteredCharts = singleVarCharts.filter(chart => 
+    selectedVariables.includes(chart.variable)
+  );
+
   if (!data || data.length === 0) {
     return (
       <Card>
@@ -290,17 +306,51 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
         {/* Variable Charts Grid */}
         <div className="flex-1 p-4">
           <div className="mb-4">
-            <h3 className="text-sm font-medium flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Variable Analysis
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Variable Analysis
+              </h3>
+              <Badge variant="outline" className="text-xs">
+                {filteredCharts.length} of {singleVarCharts.length} charts
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
               Click on any chart to explore relationships with other variables
             </p>
+            
+            {/* Multi-select filter */}
+            <Card className="p-3 mb-4 bg-card/30">
+              <div className="flex items-center gap-2 mb-3">
+                <Filter className="h-3 w-3" />
+                <span className="text-xs font-medium">Filter Variables</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                {columnsInfo.map(column => (
+                  <div key={column.name} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={column.name}
+                      checked={selectedVariables.includes(column.name)}
+                      onCheckedChange={() => handleVariableToggle(column.name)}
+                    />
+                    <label
+                      htmlFor={column.name}
+                      className="text-xs cursor-pointer truncate flex-1"
+                      title={column.name}
+                    >
+                      {column.name}
+                    </label>
+                    <Badge variant="secondary" className="text-[10px] px-1">
+                      {column.data_type}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </Card>
           </div>
-          <ScrollArea className="h-[calc(100vh-160px)]">
+          <ScrollArea className="h-[calc(100vh-280px)]">
             <div className="space-y-4 pb-6">
-              {singleVarCharts.map((chart, index) => (
+              {filteredCharts.map((chart, index) => (
                 <Card 
                   key={`${chart.variable}-${index}`}
                   className="border-border/50 bg-card/50 cursor-pointer hover:bg-card/80 transition-all duration-200 hover:shadow-md flex-shrink-0"
