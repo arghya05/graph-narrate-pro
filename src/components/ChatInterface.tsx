@@ -132,54 +132,26 @@ const agentPersonas = {
 
       if (!response.ok) throw new Error('Failed to send message');
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error('Failed to get response reader');
-
-      let buffer = '';
+      const data = await response.json();
       
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Process complete lines
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-        
-        for (const line of lines) {
-          if (line.trim() === '') continue;
-          
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              // Update the assistant message with streaming content
-              setMessages(prev => prev.map(msg => {
-                if (msg.id === assistantMessageId) {
-                  return {
-                    ...msg,
-                    content: data.message || msg.content,
-                    metadata: data.meta_data || msg.metadata,
-                    reasoning_content: data.reasoning_content || msg.reasoning_content
-                  };
-                }
-                return msg;
-              }));
-
-              // Update conversation ID
-              if (data.session_id) {
-                setConversationId(data.session_id);
-              }
-              
-            } catch (parseError) {
-              console.error('Error parsing SSE data:', parseError);
+      // Update the assistant message with response content
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === assistantMessageId) {
+          return {
+            ...msg,
+            content: data.analysis || msg.content,
+            metadata: {
+              ...msg.metadata,
+              agent_type: 'chat'
             }
-          }
+          };
         }
+        return msg;
+      }));
+
+      // Update conversation ID
+      if (data.session_id) {
+        setConversationId(data.session_id);
       }
 
       // After streaming is complete, check for insights and followup questions
@@ -297,85 +269,35 @@ const agentPersonas = {
 
       if (!response.ok) throw new Error('Failed to send voice message');
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error('Failed to get response reader');
-
-      let buffer = '';
-      let userMessage: Message | null = null;
-      let assistantMessageId: string | null = null;
+      const data = await response.json();
       
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Process complete lines
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-        
-        for (const line of lines) {
-          if (line.trim() === '') continue;
-          
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              // Create user message if transcribed_text is available and not already created
-              if (data.transcribed_text && !userMessage) {
-                userMessage = {
-                  id: Date.now().toString(),
-                  content: data.transcribed_text,
-                  sender: 'user',
-                  timestamp: new Date(),
-                  type: 'voice'
-                };
-                setMessages(prev => [...prev, userMessage!]);
-              }
+      // Create user message with audio file
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        content: 'Voice message', // Placeholder since we don't have transcription
+        sender: 'user',
+        timestamp: new Date(),
+        type: 'voice'
+      };
+      setMessages(prev => [...prev, userMessage]);
 
-              // Create or update assistant message
-              if (data.message && !assistantMessageId) {
-                assistantMessageId = (Date.now() + 1).toString();
-                const assistantMessage: Message = {
-                  id: assistantMessageId,
-                  content: '',
-                  sender: 'assistant',
-                  timestamp: new Date(),
-                  type: 'text',
-                  metadata: undefined,
-                  reasoning_content: ''
-                };
-                setMessages(prev => [...prev, assistantMessage]);
-              }
-
-              // Update assistant message with streaming content
-              if (assistantMessageId) {
-                setMessages(prev => prev.map(msg => {
-                  if (msg.id === assistantMessageId) {
-                    return {
-                      ...msg,
-                      content: data.message || msg.content,
-                      metadata: data.meta_data || msg.metadata,
-                      reasoning_content: data.reasoning_content || msg.reasoning_content
-                    };
-                  }
-                  return msg;
-                }));
-              }
-
-              // Update conversation ID
-              if (data.session_id) {
-                setConversationId(data.session_id);
-              }
-              
-            } catch (parseError) {
-              console.error('Error parsing voice SSE data:', parseError);
-            }
-          }
+      // Create assistant message with response
+      const assistantMessageId = (Date.now() + 1).toString();
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        content: data.analysis || '',
+        sender: 'assistant',
+        timestamp: new Date(),
+        type: 'text',
+        metadata: {
+          agent_type: 'chat'
         }
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+
+      // Update conversation ID
+      if (data.session_id) {
+        setConversationId(data.session_id);
       }
 
       // After streaming is complete, check for insights and followup questions
@@ -388,7 +310,7 @@ const agentPersonas = {
       console.error('Error sending voice message:', error);
       toast({
         title: "Connection Error",
-        description: "Cannot connect to the chat server. Please check if the backend service is running on localhost:9090",
+        description: "Cannot connect to the chat server. Please check if the backend service is running on localhost:9099",
         variant: "destructive",
       });
     }
