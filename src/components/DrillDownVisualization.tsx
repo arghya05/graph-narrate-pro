@@ -299,7 +299,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
             </p>
           </div>
           <ScrollArea className="h-[calc(100vh-160px)]">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-6">
+            <div className="grid grid-cols-1 gap-3 pb-6">
               {singleVarCharts.map((chart, index) => (
                 <Card 
                   key={`${chart.variable}-${index}`}
@@ -317,7 +317,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="h-40">
+                    <div className="h-32">
                       <Chart
                         title=""
                         data={chart.data}
