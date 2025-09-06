@@ -189,7 +189,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
         charts.push({
           var1: selectedVar,
           var2: catCol.name,
-          chartType: 'bar',
+          chartType: chartTypes[`${selectedVar}_${catCol.name}`] || 'bar',
           data: chartData
         });
       });
@@ -206,7 +206,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
         charts.push({
           var1: selectedVar,
           var2: numCol.name,
-          chartType: 'scatter',
+          chartType: chartTypes[`${selectedVar}_${numCol.name}`] || 'scatter',
           data: scatterData
         });
       });
@@ -232,7 +232,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
         charts.push({
           var1: selectedVar,
           var2: numCol.name,
-          chartType: 'bar',
+          chartType: chartTypes[`${selectedVar}_${numCol.name}`] || 'bar',
           data: chartData
         });
       });
@@ -302,6 +302,19 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
     }));
     // Regenerate charts with new type
     setTimeout(() => generateSingleVariableCharts(), 0);
+  };
+
+  const handleTwoVarChartTypeChange = (var1: string, var2: string, newChartType: string) => {
+    const key = `${var1}_${var2}`;
+    setChartTypes(prev => ({
+      ...prev,
+      [key]: newChartType
+    }));
+    // Regenerate two-variable charts
+    if (selectedVariable) {
+      const charts = generateTwoVariableCharts(selectedVariable);
+      setTwoVarCharts(charts);
+    }
   };
 
   const getChartIcon = (chartType: string) => {
@@ -519,12 +532,55 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
             
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4 pb-6">
-                {twoVarCharts.map((chart, index) => (
-                  <Card key={`${chart.var1}-${chart.var2}-${index}`} className="border-border/50 bg-card/50">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium">
-                        {chart.var1} vs {chart.var2}
-                      </CardTitle>
+                 {twoVarCharts.map((chart, index) => (
+                   <Card key={`${chart.var1}-${chart.var2}-${index}`} className="border-border/50 bg-card/50">
+                     <CardHeader className="pb-2">
+                       <div className="flex items-center justify-between">
+                         <CardTitle className="text-sm font-medium">
+                           {chart.var1} vs {chart.var2}
+                         </CardTitle>
+                         <div className="flex items-center gap-2">
+                           <Badge variant="outline" className="text-xs">
+                             {chart.chartType}
+                           </Badge>
+                           <DropdownMenu>
+                             <DropdownMenuTrigger asChild>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm" 
+                                 className="h-6 w-6 p-0"
+                               >
+                                 <MoreVertical className="h-3 w-3" />
+                               </Button>
+                             </DropdownMenuTrigger>
+                             <DropdownMenuContent align="end" className="w-36 bg-popover border border-border shadow-lg z-50">
+                               <DropdownMenuItem 
+                                 onClick={() => handleTwoVarChartTypeChange(chart.var1, chart.var2, 'bar')}
+                                 className="flex items-center gap-2 cursor-pointer"
+                               >
+                                 <BarChart className="h-3 w-3" />
+                                 Bar Chart
+                               </DropdownMenuItem>
+                               <DropdownMenuItem 
+                                 onClick={() => handleTwoVarChartTypeChange(chart.var1, chart.var2, 'line')}
+                                 className="flex items-center gap-2 cursor-pointer"
+                               >
+                                 <LineChart className="h-3 w-3" />
+                                 Line Chart
+                               </DropdownMenuItem>
+                               {chart.chartType === 'scatter' && (
+                                 <DropdownMenuItem 
+                                   onClick={() => handleTwoVarChartTypeChange(chart.var1, chart.var2, 'scatter')}
+                                   className="flex items-center gap-2 cursor-pointer"
+                                 >
+                                   <TrendingUp className="h-3 w-3" />
+                                   Scatter Plot
+                                 </DropdownMenuItem>
+                               )}
+                             </DropdownMenuContent>
+                           </DropdownMenu>
+                         </div>
+                       </div>
                     </CardHeader>
                     <CardContent className="pt-0">
                      <div className="h-64">

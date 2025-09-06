@@ -122,10 +122,10 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
           g.select('.tooltip').remove();
         });
 
-      // Add axes with styling - reduced ticks (max 15)
-      const maxTicks = Math.min(15, data.length);
+      // Add axes with styling - reduced ticks (max 5)
+      const maxTicks = Math.min(5, data.length);
       const xAxis = d3.axisBottom(xScale).ticks(maxTicks);
-      const yAxis = d3.axisLeft(yScale).ticks(Math.min(15, 8));
+      const yAxis = d3.axisLeft(yScale).ticks(5);
 
       // X axis with rotated labels
       g.append('g')
@@ -261,9 +261,9 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
             .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))');
         });
 
-      // Add axes - reduced ticks (max 15)
-      const xAxis = d3.axisBottom(xScale).ticks(Math.min(15, 8));
-      const yAxis = d3.axisLeft(yScale).ticks(Math.min(15, 8));
+      // Add axes - reduced ticks (max 5)
+      const xAxis = d3.axisBottom(xScale).ticks(5);
+      const yAxis = d3.axisLeft(yScale).ticks(5);
 
       g.append('g')
         .attr('class', 'x-axis')
@@ -447,13 +447,13 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
           g.select('.tooltip').remove();
         });
 
-      // Add axes with limited ticks (max 15)
-      const maxTicks = Math.min(15, data.length);
+      // Add axes with limited ticks (max 5)
+      const maxTicks = Math.min(5, data.length);
       const xAxis = d3.axisBottom(xScale).ticks(maxTicks).tickFormat((d, i) => {
         const dataIndex = Math.floor(Number(d));
         return data[dataIndex] ? String(data[dataIndex][xKey]).substring(0, 8) : '';
       });
-      const yAxis = d3.axisLeft(yScale).ticks(Math.min(15, 8));
+      const yAxis = d3.axisLeft(yScale).ticks(5);
 
       // X axis
       g.append('g')
@@ -648,13 +648,13 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
           g.select('.tooltip').remove();
         });
 
-      // Add axes with limited ticks (max 15)
-      const maxTicks = Math.min(15, data.length);
+      // Add axes with limited ticks (max 5)
+      const maxTicks = Math.min(5, data.length);
       const xAxis = d3.axisBottom(xScale).ticks(maxTicks).tickFormat((d, i) => {
         const dataIndex = Math.floor(Number(d));
         return data[dataIndex] ? String(data[dataIndex][xKey]).substring(0, 8) : '';
       });
-      const yAxis = d3.axisLeft(yScale).ticks(Math.min(15, 8));
+      const yAxis = d3.axisLeft(yScale).ticks(5);
 
       // X axis
       g.append('g')
