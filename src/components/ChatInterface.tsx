@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import ReactMarkdown from 'react-markdown';
 import { api, apiClient, ChatQuery, ChatResponse, DeepDiveResponse } from '@/lib/api';
 import remarkGfm from 'remark-gfm';
+import { DataPreviewModal } from './DataPreviewModal';
 interface Message {
   id: string;
   content: string;
@@ -20,6 +21,7 @@ interface Message {
   isEditing?: boolean;
   metadata?: {
     agent_type?: string;
+    sql_data?: Record<string, any>[];
   };
   reasoning_content?: string;
 }
@@ -158,19 +160,20 @@ const agentPersonas = {
       if (data.sql_data && onDataReceived) {
         onDataReceived(data.sql_data);
         
-        // Add data table to message content if sql_data exists
-        const dataTableMarkdown = generateDataTableMarkdown(data.sql_data);
-        if (dataTableMarkdown) {
-          setMessages(prev => prev.map(msg => {
-            if (msg.id === assistantMessageId) {
-              return {
-                ...msg,
-                content: msg.content + '\n\n' + dataTableMarkdown
-              };
-            }
-            return msg;
-          }));
-        }
+        // Add data preview modal instead of inline table
+        setMessages(prev => prev.map(msg => {
+          if (msg.id === assistantMessageId) {
+            return {
+              ...msg,
+              content: msg.content + '\n\n**Data Retrieved:** ' + data.sql_data.length + ' rows',
+              metadata: {
+                ...msg.metadata,
+                sql_data: data.sql_data
+              }
+            };
+          }
+          return msg;
+        }));
       }
 
       // After streaming is complete, check for insights and followup questions
@@ -435,6 +438,12 @@ const agentPersonas = {
                     {message.sender === 'assistant' ? (
                       <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                        {/* Data preview modal for assistant messages with sql_data */}
+                        {message.metadata?.sql_data && (
+                          <div className="mt-3">
+                            <DataPreviewModal data={message.metadata.sql_data} />
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm">{message.content}</p>

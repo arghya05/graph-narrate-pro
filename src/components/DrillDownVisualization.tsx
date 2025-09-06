@@ -278,144 +278,146 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
   const summaryMetrics = generateSummaryMetrics();
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Summary Metrics */}
-      <div className="flex-shrink-0 p-4 border-b border-border/50">
-        <div className="flex items-center gap-2 mb-3">
-          <BarChart3 className="h-4 w-4" />
-          <h3 className="font-medium text-sm">Key Metrics</h3>
-          <Badge variant="outline" className="ml-auto text-xs">
-            {data.length} records
-          </Badge>
-        </div>
-        <ScrollArea className="w-full">
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 pb-2">
-            {summaryMetrics.map((metric, index) => (
-              <Card key={index} className="bg-card border-border/50">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      {metric.title}
-                    </CardTitle>
-                    {metric.change && (
-                      <span className="text-xs px-1.5 py-0.5 rounded text-muted-foreground">
-                        {metric.change}
-                      </span>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="text-2xl font-bold">{metric.value}</div>
-                </CardContent>
-              </Card>
-            ))}
+    <div className="h-full flex">
+      {/* Main Charts Grid */}
+      <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/2' : 'w-full'}`}>
+        {/* Summary Metrics */}
+        <div className="flex-shrink-0 p-4 border-b border-border/50">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart3 className="h-4 w-4" />
+            <h3 className="font-medium text-sm">Key Metrics</h3>
+            <Badge variant="outline" className="ml-auto text-xs">
+              {data.length} records
+            </Badge>
           </div>
-        </ScrollArea>
+          <ScrollArea className="w-full">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 pb-2">
+              {summaryMetrics.map((metric, index) => (
+                <Card key={index} className="bg-card border-border/50">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        {metric.title}
+                      </CardTitle>
+                      {metric.change && (
+                        <span className="text-xs px-1.5 py-0.5 rounded text-muted-foreground">
+                          {metric.change}
+                        </span>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="text-2xl font-bold">{metric.value}</div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+        
+        {/* Variable Charts Grid */}
+        <div className="flex-1 p-4">
+          <div className="mb-4">
+            <h3 className="text-sm font-medium flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Variable Analysis
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Click on any chart to explore relationships with other variables
+            </p>
+          </div>
+          <ScrollArea className="h-[calc(100vh-200px)]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
+              {singleVarCharts.map((chart, index) => (
+                <Card 
+                  key={`${chart.variable}-${index}`}
+                  className="border-border/50 bg-card/50 cursor-pointer hover:bg-card/80 transition-all duration-200 hover:shadow-md"
+                  onClick={() => handleVariableClick(chart.variable)}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium">
+                        {chart.variable}
+                      </CardTitle>
+                      <Badge variant="outline" className="text-xs">
+                        {chart.chartType}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="h-40">
+                      <Chart
+                        title=""
+                        data={chart.data}
+                        chartType={chart.chartType as any}
+                        xKey={chart.chartType === 'histogram' ? 'range' : 'name'}
+                        yKey={chart.chartType === 'histogram' ? 'count' : 'count'}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
-      
-      {/* Charts Section */}
-      <Card className="flex-1 min-h-0 m-4 mt-0">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              {selectedVariable ? (
-                <>
+
+      {/* Slide-out Analysis Panel */}
+      {selectedVariable && (
+        <div className="w-1/2 border-l border-border/50 bg-card/30 transition-all duration-300">
+          <div className="h-full flex flex-col">
+            <div className="flex-shrink-0 p-4 border-b border-border/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  <h3 className="font-medium text-sm">{selectedVariable} Relationships</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {twoVarCharts.length} relationships
+                  </Badge>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleBackClick}
-                    className="h-6 w-6 p-0 mr-2"
+                    className="h-8 w-8 p-0"
                   >
                     <ArrowLeft className="h-3 w-3" />
                   </Button>
-                  <TrendingUp className="h-4 w-4" />
-                  {selectedVariable} - Related Variables
-                </>
-              ) : (
-                <>
-                  <BarChart3 className="h-4 w-4" />
-                  Variable Distribution
-                </>
-              )}
-            </CardTitle>
-            {selectedVariable && (
-              <Badge variant="outline" className="text-xs">
-                {twoVarCharts.length} relationships
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0 h-full flex flex-col">
-          <ScrollArea className="flex-1">
-            <div className="pb-6">
-              {!selectedVariable ? (
-                <div className="space-y-4">
-                  <p className="text-xs text-muted-foreground">Click on a variable to explore its relationships</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {singleVarCharts.map((chart, index) => (
-                      <Card 
-                        key={index} 
-                        className="border-border/50 bg-card/50 cursor-pointer hover:bg-card/80 transition-colors"
-                        onClick={() => handleVariableClick(chart.variable)}
-                      >
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-sm font-medium">
-                              {chart.variable}
-                            </CardTitle>
-                            <Badge variant="outline" className="text-xs">
-                              {chart.chartType}
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="h-40">
-                            <Chart
-                              title=""
-                              data={chart.data}
-                              chartType={chart.chartType as any}
-                              xKey={chart.chartType === 'histogram' ? 'range' : 'name'}
-                              yKey={chart.chartType === 'histogram' ? 'count' : 'count'}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <p className="text-xs text-muted-foreground">
-                    Showing relationships between {selectedVariable} and other variables
-                  </p>
-                  <div className="grid grid-cols-1 gap-4">
-                    {twoVarCharts.map((chart, index) => (
-                      <Card key={index} className="border-border/50 bg-card/50">
-                        <CardHeader className="pb-3">
-                          <CardTitle className="text-sm font-medium">
-                            {chart.var1} vs {chart.var2}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="h-48">
-                            <Chart
-                              title=""
-                              data={chart.data}
-                              chartType={chart.chartType as any}
-                              xKey={chart.chartType === 'scatter' ? 'x' : 'category'}
-                              yKey={chart.chartType === 'scatter' ? 'y' : 'average'}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Exploring how {selectedVariable} relates to other variables
+              </p>
             </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+            
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4 pb-6">
+                {twoVarCharts.map((chart, index) => (
+                  <Card key={`${chart.var1}-${chart.var2}-${index}`} className="border-border/50 bg-card/50">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">
+                        {chart.var1} vs {chart.var2}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="h-48">
+                        <Chart
+                          title=""
+                          data={chart.data}
+                          chartType={chart.chartType as any}
+                          xKey={chart.chartType === 'scatter' ? 'x' : 'category'}
+                          yKey={chart.chartType === 'scatter' ? 'y' : 'average'}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
