@@ -20,7 +20,8 @@ import {
   AreaChart 
 } from 'recharts';
 import { ChartType } from '@/lib/api';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Maximize2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface ChartProps {
   title: string;
@@ -54,13 +55,14 @@ export function Chart({
   description
 }: ChartProps) {
   const [selectedType, setSelectedType] = useState<ChartType>(chartType);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleTypeChange = (type: ChartType) => {
     setSelectedType(type);
     onChartTypeChange?.(type);
   };
 
-  const renderChart = () => {
+  const renderChart = (height = 300) => {
     if (!data || data.length === 0) {
       return (
         <div className="h-64 flex items-center justify-center text-muted-foreground">
@@ -72,11 +74,11 @@ export function Chart({
     switch (selectedType) {
       case 'bar':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={height}>
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-              <XAxis dataKey={xKey} stroke="hsl(220, 8.9%, 46.1%)" />
-              <YAxis stroke="hsl(220, 8.9%, 46.1%)" />
+              <XAxis dataKey={xKey} stroke="hsl(220, 8.9%, 46.1%)" interval="preserveStartEnd" tick={{ fontSize: 10 }} />
+              <YAxis stroke="hsl(220, 8.9%, 46.1%)" tick={{ fontSize: 10 }} />
               <Tooltip 
                 contentStyle={{
                   backgroundColor: 'hsl(0, 0%, 100%)',
@@ -91,11 +93,11 @@ export function Chart({
 
       case 'line':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={height}>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-              <XAxis dataKey={xKey} stroke="hsl(220, 8.9%, 46.1%)" />
-              <YAxis stroke="hsl(220, 8.9%, 46.1%)" />
+              <XAxis dataKey={xKey} stroke="hsl(220, 8.9%, 46.1%)" interval="preserveStartEnd" tick={{ fontSize: 10 }} />
+              <YAxis stroke="hsl(220, 8.9%, 46.1%)" tick={{ fontSize: 10 }} />
               <Tooltip 
                 contentStyle={{
                   backgroundColor: 'hsl(0, 0%, 100%)',
@@ -116,11 +118,11 @@ export function Chart({
 
       case 'area':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={height}>
             <AreaChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-              <XAxis dataKey={xKey} stroke="hsl(220, 8.9%, 46.1%)" />
-              <YAxis stroke="hsl(220, 8.9%, 46.1%)" />
+              <XAxis dataKey={xKey} stroke="hsl(220, 8.9%, 46.1%)" interval="preserveStartEnd" tick={{ fontSize: 10 }} />
+              <YAxis stroke="hsl(220, 8.9%, 46.1%)" tick={{ fontSize: 10 }} />
               <Tooltip 
                 contentStyle={{
                   backgroundColor: 'hsl(0, 0%, 100%)',
@@ -141,7 +143,7 @@ export function Chart({
 
       case 'pie':
         return (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={height}>
             <PieChart>
               <Pie
                 data={data}
@@ -206,8 +208,23 @@ export function Chart({
                 </SelectContent>
               </Select>
             )}
+            <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-6xl h-[80vh]">
+                <DialogHeader>
+                  <DialogTitle>{title} - Fullscreen View</DialogTitle>
+                </DialogHeader>
+                <div className="flex-1 overflow-hidden">
+                  {renderChart(500)}
+                </div>
+              </DialogContent>
+            </Dialog>
             {onClick && (
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={onClick}>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             )}
