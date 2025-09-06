@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { D3Chart } from '@/components/D3Chart';
-import { BarChart3, ArrowLeft, TrendingUp, Filter } from 'lucide-react';
+import { BarChart3, ArrowLeft, TrendingUp, Filter, ChevronDown } from 'lucide-react';
 
 interface ColumnInfo {
   name: string;
@@ -32,6 +33,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
     data: any[];
   }>>([]);
   const [selectedVariables, setSelectedVariables] = useState<string[]>([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
     if (data && data.length > 0) {
@@ -321,33 +323,42 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
             
             {/* Multi-select filter */}
             {columnsInfo.length > 0 && (
-              <Card className="p-3 mb-4 bg-card/30 border-border/50">
-                <div className="flex items-center gap-2 mb-3">
-                  <Filter className="h-3 w-3" />
-                  <span className="text-xs font-medium">Filter Variables ({columnsInfo.length} total)</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                  {columnsInfo.map(column => (
-                    <div key={column.name} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={column.name}
-                        checked={selectedVariables.includes(column.name)}
-                        onCheckedChange={() => handleVariableToggle(column.name)}
-                      />
-                      <label
-                        htmlFor={column.name}
-                        className="text-xs cursor-pointer truncate flex-1"
-                        title={column.name}
-                      >
-                        {column.name}
-                      </label>
-                      <Badge variant="secondary" className="text-[10px] px-1">
-                        {column.data_type}
-                      </Badge>
+              <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full mb-4 justify-between h-auto p-3 bg-card/30 border-border/50 hover:bg-card/50">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-3 w-3" />
+                      <span className="text-xs font-medium">Filter Variables ({selectedVariables.length}/{columnsInfo.length})</span>
                     </div>
-                  ))}
-                </div>
-              </Card>
+                    <ChevronDown className={`h-3 w-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <Card className="p-3 mb-4 bg-card/30 border-border/50">
+                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                      {columnsInfo.map(column => (
+                        <div key={column.name} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={column.name}
+                            checked={selectedVariables.includes(column.name)}
+                            onCheckedChange={() => handleVariableToggle(column.name)}
+                          />
+                          <label
+                            htmlFor={column.name}
+                            className="text-xs cursor-pointer truncate flex-1"
+                            title={column.name}
+                          >
+                            {column.name}
+                          </label>
+                          <Badge variant="secondary" className="text-[10px] px-1">
+                            {column.data_type}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </CollapsibleContent>
+              </Collapsible>
             )}
             
             {columnsInfo.length === 0 && (
