@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Chart } from '@/components/Chart';
-import { MetricChart } from '@/components/MetricChart';
 import { BarChart3, ArrowLeft, TrendingUp } from 'lucide-react';
 
 interface ColumnInfo {
@@ -241,8 +240,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
     // Total records
     metrics.push({
       title: 'Total Records',
-      value: data.length.toLocaleString(),
-      data: Array.from({ length: 12 }, (_, i) => ({ value: Math.floor(Math.random() * 100) + 50 }))
+      value: data.length.toLocaleString()
     });
     
     // Numeric column insights
@@ -255,8 +253,7 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
         metrics.push({
           title: col.name,
           value: avg > 1000 ? `${(avg / 1000).toFixed(1)}K` : avg.toFixed(0),
-          change: `${((Math.random() - 0.5) * 20).toFixed(1)}%`,
-          data: values.slice(0, 12).map(value => ({ value }))
+          change: `${((Math.random() - 0.5) * 20).toFixed(1)}%`
         });
       }
     });
@@ -294,15 +291,23 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
         <ScrollArea className="w-full">
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 pb-2">
             {summaryMetrics.map((metric, index) => (
-              <MetricChart
-                key={index}
-                title={metric.title}
-                value={metric.value}
-                change={metric.change}
-                data={metric.data}
-                chartType="line"
-                color="#3b82f6"
-              />
+              <Card key={index} className="bg-card border-border/50">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      {metric.title}
+                    </CardTitle>
+                    {metric.change && (
+                      <span className="text-xs px-1.5 py-0.5 rounded text-muted-foreground">
+                        {metric.change}
+                      </span>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="text-2xl font-bold">{metric.value}</div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </ScrollArea>
