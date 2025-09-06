@@ -299,14 +299,14 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
             </p>
           </div>
           <ScrollArea className="h-[calc(100vh-160px)]">
-            <div className="flex flex-col gap-2 pb-6">
+            <div className="space-y-4 pb-6">
               {singleVarCharts.map((chart, index) => (
                 <Card 
                   key={`${chart.variable}-${index}`}
-                  className="border-border/50 bg-card/50 cursor-pointer hover:bg-card/80 transition-all duration-200 hover:shadow-md"
+                  className="border-border/50 bg-card/50 cursor-pointer hover:bg-card/80 transition-all duration-200 hover:shadow-md flex-shrink-0"
                   onClick={() => handleVariableClick(chart.variable)}
                 >
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-medium">
                         {chart.variable}
@@ -316,8 +316,8 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="h-32">
+                  <CardContent className="pt-0 pb-4">
+                    <div className="h-48 w-full">
                       <Chart
                         title=""
                         data={chart.data}
