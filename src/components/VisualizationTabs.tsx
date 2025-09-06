@@ -202,8 +202,8 @@ export function VisualizationTabs({ data }: VisualizationTabsProps) {
   const twoVarCharts = generateTwoVariableCharts();
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5" />
           Data Visualizations
@@ -213,9 +213,9 @@ export function VisualizationTabs({ data }: VisualizationTabsProps) {
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="p-0">
-        <Tabs defaultValue="single" className="h-full">
-          <TabsList className="w-full justify-start px-6 mb-4">
+      <CardContent className="p-0 flex-1 min-h-0 flex flex-col">
+        <Tabs defaultValue="single" className="h-full flex flex-col">
+          <TabsList className="w-full justify-start px-6 mb-4 flex-shrink-0">
             <TabsTrigger value="single" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Single Variable
@@ -234,8 +234,8 @@ export function VisualizationTabs({ data }: VisualizationTabsProps) {
             </TabsTrigger>
           </TabsList>
 
-          <div className="px-6 pb-6">
-            <TabsContent value="single" className="mt-0">
+          <div className="flex-1 min-h-0 overflow-auto px-6 pb-6">
+            <TabsContent value="single" className="mt-0 h-full">
               <div className="space-y-4">
                 <h4 className="text-sm font-medium">Single Variable Analysis</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -284,7 +284,7 @@ export function VisualizationTabs({ data }: VisualizationTabsProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="two" className="mt-0">
+            <TabsContent value="two" className="mt-0 h-full">
               <div className="space-y-4">
                 <h4 className="text-sm font-medium">Two Variable Analysis</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -312,14 +312,14 @@ export function VisualizationTabs({ data }: VisualizationTabsProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="time" className="mt-0">
+            <TabsContent value="time" className="mt-0 h-full">
               <div className="text-center py-8 text-muted-foreground">
                 <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Time series analysis will be available when datetime columns are detected</p>
               </div>
             </TabsContent>
 
-            <TabsContent value="custom" className="mt-0">
+            <TabsContent value="custom" className="mt-0 h-full">
               <div className="text-center py-8 text-muted-foreground">
                 <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Custom chart builder coming soon</p>
