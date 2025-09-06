@@ -454,12 +454,12 @@ export function DrillDownVisualization({ data }: DrillDownVisualizationProps) {
                             <DropdownMenuItem 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleChartTypeChange(chart.variable, 'histogram');
+                                handleChartTypeChange(chart.variable, 'pie');
                               }}
                               className="flex items-center gap-2 cursor-pointer"
                             >
-                              <BarChart3 className="h-3 w-3" />
-                              Histogram
+                              <PieChart className="h-3 w-3" />
+                              Pie Chart
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

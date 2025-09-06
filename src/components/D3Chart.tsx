@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 
 interface D3ChartProps {
   data: any[];
-  chartType: 'bar' | 'histogram' | 'scatter' | 'line';
+  chartType: 'bar' | 'histogram' | 'scatter' | 'line' | 'pie';
   xKey: string;
   yKey: string;
   width?: number;
@@ -122,9 +122,10 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
           g.select('.tooltip').remove();
         });
 
-      // Add axes with styling - reduced ticks
-      const xAxis = d3.axisBottom(xScale).ticks(Math.min(5, data.length));
-      const yAxis = d3.axisLeft(yScale).ticks(5);
+      // Add axes with styling - reduced ticks (max 15)
+      const maxTicks = Math.min(15, data.length);
+      const xAxis = d3.axisBottom(xScale).ticks(maxTicks);
+      const yAxis = d3.axisLeft(yScale).ticks(Math.min(15, 8));
 
       // X axis with rotated labels
       g.append('g')
@@ -260,9 +261,9 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
             .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))');
         });
 
-      // Add axes - reduced ticks
-      const xAxis = d3.axisBottom(xScale).ticks(5);
-      const yAxis = d3.axisLeft(yScale).ticks(5);
+      // Add axes - reduced ticks (max 15)
+      const xAxis = d3.axisBottom(xScale).ticks(Math.min(15, 8));
+      const yAxis = d3.axisLeft(yScale).ticks(Math.min(15, 8));
 
       g.append('g')
         .attr('class', 'x-axis')
@@ -522,6 +523,149 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
       
       g.selectAll('.tick line')
         .style('stroke', 'hsl(var(--border))');
+
+    } else if (chartType === 'pie') {
+      // Create pie chart
+      const radius = Math.min(innerWidth, innerHeight) / 2;
+      const centerX = innerWidth / 2;
+      const centerY = innerHeight / 2;
+
+      // Move group to center
+      g.attr('transform', `translate(${margin.left + centerX},${margin.top + centerY})`);
+
+      // Create color scale
+      const colorScale = d3.scaleOrdinal()
+        .domain(data.map(d => d[xKey]))
+        .range([
+          'hsl(var(--primary))',
+          'hsl(var(--accent))',
+          'hsl(262 83% 45%)',
+          'hsl(262 83% 65%)',
+          'hsl(262 83% 75%)',
+          'hsl(220 14.3% 75%)',
+          'hsl(220 14.3% 85%)',
+          'hsl(262 50% 50%)',
+          'hsl(262 50% 60%)',
+          'hsl(262 50% 70%)'
+        ]);
+
+      // Create pie generator
+      const pie = d3.pie<any>()
+        .value(d => d[yKey])
+        .sort(null);
+
+      // Create arc generator
+      const arc = d3.arc<any>()
+        .innerRadius(radius * 0.3)
+        .outerRadius(radius * 0.8);
+
+      const outerArc = d3.arc<any>()
+        .innerRadius(radius * 0.9)
+        .outerRadius(radius * 0.9);
+
+      // Generate pie data
+      const pieData = pie(data);
+
+      // Create pie slices
+      const slices = g.selectAll('.slice')
+        .data(pieData)
+        .enter()
+        .append('g')
+        .attr('class', 'slice');
+
+      // Add paths
+      slices.append('path')
+        .attr('d', arc)
+        .attr('fill', d => colorScale(d.data[xKey]) as string)
+        .style('stroke', 'white')
+        .style('stroke-width', 2)
+        .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))')
+        .transition()
+        .duration(800)
+        .attrTween('d', function(d: any) {
+          const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+          return function(t: number) {
+            return arc(interpolate(t));
+          };
+        });
+
+      // Add hover effects
+      slices.select('path')
+        .on('mouseover', function(event, d) {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .style('filter', 'drop-shadow(0 4px 8px rgba(0,0,0,0.2)) brightness(1.1)');
+          
+          // Add tooltip
+          const tooltip = g.append('g').attr('class', 'tooltip');
+          tooltip
+            .append('rect')
+            .attr('x', -40)
+            .attr('y', -15)
+            .attr('width', 80)
+            .attr('height', 30)
+            .attr('fill', 'hsl(var(--background))')
+            .attr('stroke', 'hsl(var(--border))')
+            .attr('rx', 4);
+          
+          tooltip
+            .append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dy', '0.35em')
+            .attr('fill', 'hsl(var(--foreground))')
+            .style('font-size', '12px')
+            .text(`${d.data[xKey]}: ${d.data[yKey]}`);
+        })
+        .on('mouseout', function() {
+          d3.select(this)
+            .transition()
+            .duration(200)
+            .style('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))');
+          
+          g.select('.tooltip').remove();
+        });
+
+      // Add labels
+      slices.append('text')
+        .attr('transform', d => `translate(${outerArc.centroid(d)})`)
+        .style('text-anchor', 'middle')
+        .style('font-size', '10px')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .text(d => {
+          const percent = ((d.endAngle - d.startAngle) / (2 * Math.PI) * 100).toFixed(1);
+          return Number(percent) > 5 ? `${percent}%` : '';
+        })
+        .transition()
+        .duration(800)
+        .delay(400)
+        .style('opacity', 1);
+
+      // Add legend
+      const legend = svg.append('g')
+        .attr('class', 'legend')
+        .attr('transform', `translate(${width - 120}, 30)`);
+
+      const legendItems = legend.selectAll('.legend-item')
+        .data(data.slice(0, 8))
+        .enter()
+        .append('g')
+        .attr('class', 'legend-item')
+        .attr('transform', (d, i) => `translate(0, ${i * 18})`);
+
+      legendItems.append('rect')
+        .attr('width', 12)
+        .attr('height', 12)
+        .attr('fill', d => colorScale(d[xKey]) as string)
+        .attr('rx', 2);
+
+      legendItems.append('text')
+        .attr('x', 16)
+        .attr('y', 6)
+        .attr('dy', '0.35em')
+        .style('font-size', '9px')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .text(d => String(d[xKey]).substring(0, 10) + (String(d[xKey]).length > 10 ? '...' : ''));
     }
 
   }, [data, chartType, xKey, yKey, width, height]);
