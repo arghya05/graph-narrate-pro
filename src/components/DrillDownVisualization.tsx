@@ -177,10 +177,10 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
         }
       });
 
-      // Limit to top 6 categories by data points count
+      // Limit to top 8 categories by data points count (5-10 range)
       const sortedCategories = Object.entries(categoryGroups)
         .sort(([,a], [,b]) => b.length - a.length)
-        .slice(0, 6);
+        .slice(0, 8);
 
       let chartData;
       
@@ -194,11 +194,22 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
           }))
         );
       } else {
-        // Create multi-line chart data format
-        chartData = sortedCategories.map(([category, points]) => ({
+        // Create multi-line chart data format with distinct colors
+        const colorPalette = [
+          'hsl(220, 70%, 50%)', // Blue
+          'hsl(0, 70%, 50%)',   // Red
+          'hsl(120, 70%, 40%)', // Green
+          'hsl(280, 70%, 50%)', // Purple
+          'hsl(35, 70%, 50%)',  // Orange
+          'hsl(180, 70%, 45%)', // Cyan
+          'hsl(60, 70%, 45%)',  // Yellow
+          'hsl(320, 70%, 50%)', // Magenta
+        ];
+        
+        chartData = sortedCategories.map(([category, points], index) => ({
           name: category,
           data: smoothData(points, 50), // Smooth each line separately
-          color: `hsl(${Math.abs(category.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % 360}, 70%, 50%)`
+          color: colorPalette[index % colorPalette.length]
         }));
       }
 
