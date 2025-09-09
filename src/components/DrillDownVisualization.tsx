@@ -89,65 +89,33 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       data: any[];
     }> = [];
 
-    const maxCharts = columnsInfo.length;
+    // Only include numeric columns for single variable charts
+    const numericColumns = columnsInfo.filter(col => col.data_type === 'numeric');
     
-    for (let i = 0; i < maxCharts; i++) {
-      const column = columnsInfo[i];
+    for (let i = 0; i < numericColumns.length; i++) {
+      const column = numericColumns[i];
       if (!column) continue;
 
-      // Set default chart type if not already set
+      // Set default chart type as line for numeric data
       if (!chartTypes[column.name]) {
         setChartTypes(prev => ({
           ...prev,
-          [column.name]: column.data_type === 'numeric' ? 'histogram' : 'bar'
+          [column.name]: 'line'
         }));
       }
 
-      if (column.data_type === 'numeric') {
-        // Create histogram data
-        const values = data.map(row => row[column.name]).filter(v => v != null);
-        const bins = 10;
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        const binSize = (max - min) / bins;
-        
-        const histData = Array.from({ length: bins }, (_, i) => {
-          const binStart = min + i * binSize;
-          const binEnd = min + (i + 1) * binSize;
-          const count = values.filter(v => v >= binStart && v < binEnd).length;
-          return {
-            range: `${binStart.toFixed(1)}-${binEnd.toFixed(1)}`,
-            count,
-            value: binStart + binSize / 2
-          };
-        });
+      // Create line chart data for numeric columns
+      const values = data.map((row, index) => ({
+        x: index,
+        y: Number(row[column.name]),
+        label: `Point ${index + 1}`
+      })).filter(point => !isNaN(point.y));
 
-        charts.push({
-          variable: column.name,
-          chartType: chartTypes[column.name] || 'histogram',
-          data: histData
-        });
-      } else if (column.data_type === 'categorical') {
-        // Create bar chart data
-        const valueCounts: Record<string, number> = {};
-        data.forEach(row => {
-          const val = row[column.name];
-          if (val != null) {
-            valueCounts[val] = (valueCounts[val] || 0) + 1;
-          }
-        });
-
-        const barData = Object.entries(valueCounts)
-          .sort(([,a], [,b]) => b - a)
-          .slice(0, 10)
-          .map(([name, count]) => ({ name, count }));
-
-        charts.push({
-          variable: column.name,
-          chartType: chartTypes[column.name] || 'bar',
-          data: barData
-        });
-      }
+      charts.push({
+        variable: column.name,
+        chartType: chartTypes[column.name] || 'line',
+        data: values
+      });
     }
 
     setSingleVarCharts(charts);
@@ -155,10 +123,10 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
 
   const generateTwoVariableCharts = (selectedVar: string) => {
     const selectedColumn = columnsInfo.find(col => col.name === selectedVar);
-    if (!selectedColumn) return [];
+    if (!selectedColumn || selectedColumn.data_type !== 'numeric') return [];
 
-    const numericCols = columnsInfo.filter(col => col.data_type === 'numeric' && col.name !== selectedVar);
-    const categoricalCols = columnsInfo.filter(col => col.data_type === 'categorical' && col.name !== selectedVar);
+    // Only show categorical columns for numeric vs categorical relationships
+    const categoricalCols = columnsInfo.filter(col => col.data_type === 'categorical');
     
     const charts: Array<{
       var1: string;
@@ -167,78 +135,33 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       data: any[];
     }> = [];
 
-    if (selectedColumn.data_type === 'numeric') {
-      // Numeric vs Categorical
-      categoricalCols.slice(0, 3).forEach(catCol => {
-        const grouped: Record<string, number[]> = {};
-        data.forEach(row => {
-          const catVal = row[catCol.name];
-          const numVal = row[selectedVar];
-          if (catVal != null && numVal != null) {
-            if (!grouped[catVal]) grouped[catVal] = [];
-            grouped[catVal].push(Number(numVal));
-          }
-        });
-
-        const chartData = Object.entries(grouped).map(([category, values]) => ({
-          category,
-          average: values.reduce((a, b) => a + b, 0) / values.length,
-          count: values.length
-        }));
-
-        charts.push({
-          var1: selectedVar,
-          var2: catCol.name,
-          chartType: chartTypes[`${selectedVar}_${catCol.name}`] || 'bar',
-          data: chartData
-        });
+    // Only generate Numeric vs Categorical charts
+    categoricalCols.forEach(catCol => {
+      const grouped: Record<string, number[]> = {};
+      data.forEach(row => {
+        const catVal = row[catCol.name];
+        const numVal = row[selectedVar];
+        if (catVal != null && numVal != null) {
+          if (!grouped[catVal]) grouped[catVal] = [];
+          grouped[catVal].push(Number(numVal));
+        }
       });
 
-      // Numeric vs Numeric (scatter)
-      numericCols.slice(0, 3).forEach(numCol => {
-        const scatterData = data
-          .map(row => ({
-            x: Number(row[selectedVar]),
-            y: Number(row[numCol.name])
-          }))
-          .filter(point => !isNaN(point.x) && !isNaN(point.y));
+      const chartData = Object.entries(grouped).map(([category, values]) => ({
+        category,
+        average: values.reduce((a, b) => a + b, 0) / values.length,
+        count: values.length
+      }));
 
-        charts.push({
-          var1: selectedVar,
-          var2: numCol.name,
-          chartType: chartTypes[`${selectedVar}_${numCol.name}`] || 'scatter',
-          data: scatterData
-        });
+      charts.push({
+        var1: selectedVar,
+        var2: catCol.name,
+        chartType: chartTypes[`${selectedVar}_${catCol.name}`] || 'bar',
+        data: chartData
       });
-    } else if (selectedColumn.data_type === 'categorical') {
-      // Categorical vs Numeric
-      numericCols.slice(0, 4).forEach(numCol => {
-        const grouped: Record<string, number[]> = {};
-        data.forEach(row => {
-          const catVal = row[selectedVar];
-          const numVal = row[numCol.name];
-          if (catVal != null && numVal != null) {
-            if (!grouped[catVal]) grouped[catVal] = [];
-            grouped[catVal].push(Number(numVal));
-          }
-        });
+    });
 
-        const chartData = Object.entries(grouped).map(([category, values]) => ({
-          category,
-          average: values.reduce((a, b) => a + b, 0) / values.length,
-          count: values.length
-        }));
-
-        charts.push({
-          var1: selectedVar,
-          var2: numCol.name,
-          chartType: chartTypes[`${selectedVar}_${numCol.name}`] || 'bar',
-          data: chartData
-        });
-      });
-    }
-
-    return charts.slice(0, 6);
+    return charts;
   };
 
   const handleVariableClick = (variable: string) => {
