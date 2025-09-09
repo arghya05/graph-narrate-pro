@@ -80,6 +80,21 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
     setColumnsInfo(analyzed);
   };
 
+  // Helper function to smooth data by sampling points
+  const smoothData = (data: any[], maxPoints: number = 100) => {
+    if (data.length <= maxPoints) return data;
+    
+    const step = Math.floor(data.length / maxPoints);
+    const smoothed = [];
+    
+    for (let i = 0; i < data.length; i += step) {
+      if (smoothed.length >= maxPoints) break;
+      smoothed.push(data[i]);
+    }
+    
+    return smoothed;
+  };
+
   const generateSingleVariableCharts = () => {
     if (!data || data.length === 0) return;
 
@@ -105,16 +120,19 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       }
 
       // Create line chart data for numeric columns
-      const values = data.map((row, index) => ({
+      const rawValues = data.map((row, index) => ({
         x: index,
         y: Number(row[column.name]),
         label: `Point ${index + 1}`
       })).filter(point => !isNaN(point.y));
 
+      // Apply smoothing to reduce data points for performance
+      const smoothedValues = smoothData(rawValues, 100);
+
       charts.push({
         variable: column.name,
         chartType: chartTypes[column.name] || 'line',
-        data: values
+        data: smoothedValues
       });
     }
 
@@ -135,7 +153,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       data: any[];
     }> = [];
 
-    // Only generate Numeric vs Categorical charts
+    // Only generate Numeric vs Categorical charts with line plots
     categoricalCols.forEach(catCol => {
       const grouped: Record<string, number[]> = {};
       data.forEach(row => {
@@ -147,7 +165,12 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
         }
       });
 
-      const chartData = Object.entries(grouped).map(([category, values]) => ({
+      // Limit to top 6 categories by count to reduce load
+      const sortedEntries = Object.entries(grouped)
+        .sort(([,a], [,b]) => b.length - a.length)
+        .slice(0, 6);
+
+      const chartData = sortedEntries.map(([category, values]) => ({
         category,
         average: values.reduce((a, b) => a + b, 0) / values.length,
         count: values.length
@@ -156,7 +179,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       charts.push({
         var1: selectedVar,
         var2: catCol.name,
-        chartType: chartTypes[`${selectedVar}_${catCol.name}`] || 'bar',
+        chartType: 'line', // Force line charts for better performance
         data: chartData
       });
     });
