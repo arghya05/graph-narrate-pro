@@ -119,12 +119,16 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
         }));
       }
 
-      // Create line chart data for numeric columns
-      const rawValues = data.map((row, index) => ({
-        x: index,
-        y: Number(row[column.name]),
-        label: `Point ${index + 1}`
-      })).filter(point => !isNaN(point.y));
+      // Create distribution data for numeric columns (showing value fluctuations)
+      const values = data.map(row => Number(row[column.name])).filter(v => !isNaN(v));
+      const sortedValues = [...values].sort((a, b) => a - b);
+      
+      // Create distribution chart data showing value fluctuations over percentiles
+      const rawValues = sortedValues.map((value, index) => ({
+        x: (index / sortedValues.length) * 100, // Percentile
+        y: value,
+        label: `${((index / sortedValues.length) * 100).toFixed(1)}th percentile: ${value}`
+      }));
 
       // Apply smoothing to reduce data points for performance
       const smoothedValues = smoothData(rawValues, 100);
@@ -155,6 +159,9 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
 
     // Generate multi-line charts for each categorical column
     categoricalCols.forEach(catCol => {
+      const key = `${selectedVar}_${catCol.name}`;
+      const currentChartType = chartTypes[key] || 'multi-line';
+      
       // Group data by category and create time series
       const categoryGroups: Record<string, Array<{x: number, y: number}>> = {};
       
@@ -175,18 +182,31 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
         .sort(([,a], [,b]) => b.length - a.length)
         .slice(0, 6);
 
-      // Create multi-line chart data format
-      const multiLineData = sortedCategories.map(([category, points]) => ({
-        name: category,
-        data: smoothData(points, 50), // Smooth each line separately
-        color: `hsl(${Math.abs(category.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % 360}, 70%, 50%)`
-      }));
+      let chartData;
+      
+      if (currentChartType === 'bar') {
+        // Create bar chart format
+        chartData = sortedCategories.flatMap(([category, points]) => 
+          points.slice(0, 10).map((point, idx) => ({
+            name: `${category}_${idx}`,
+            value: point.y,
+            category: category
+          }))
+        );
+      } else {
+        // Create multi-line chart data format
+        chartData = sortedCategories.map(([category, points]) => ({
+          name: category,
+          data: smoothData(points, 50), // Smooth each line separately
+          color: `hsl(${Math.abs(category.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % 360}, 70%, 50%)`
+        }));
+      }
 
       charts.push({
         var1: selectedVar,
         var2: catCol.name,
-        chartType: 'multi-line',
-        data: multiLineData
+        chartType: currentChartType,
+        data: chartData
       });
     });
 
@@ -262,11 +282,27 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       ...prev,
       [key]: newChartType
     }));
-    // Regenerate two-variable charts
-    if (selectedVariable) {
-      const charts = generateTwoVariableCharts(selectedVariable);
-      setTwoVarCharts(charts);
-    }
+    
+    // Update existing chart data with new type
+    setTwoVarCharts(prev => prev.map(chart => {
+      if (chart.var1 === var1 && chart.var2 === var2) {
+        if (newChartType === 'bar') {
+          // Convert multi-line data to bar chart format
+          const barData = chart.data.flatMap((line: any) => 
+            line.data.slice(0, 10).map((point: any, idx: number) => ({
+              name: `${line.name}_${idx}`,
+              value: point.y,
+              category: line.name
+            }))
+          );
+          return { ...chart, chartType: newChartType, data: barData };
+        } else {
+          // Keep as multi-line for line charts
+          return { ...chart, chartType: newChartType };
+        }
+      }
+      return chart;
+    }));
   };
 
   const getChartIcon = (chartType: string) => {
@@ -302,7 +338,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
   return (
     <div className="h-full flex">
       {/* Main Charts Grid */}
-      <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/4' : 'w-full'}`}>
+      <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/3' : 'w-full'}`}>
         
         {/* Variable Charts Grid */}
         <div className="flex-1 p-4">
@@ -438,9 +474,9 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                          key={`${chart.variable}-${chart.chartType}-${chart.data.length}`}
                          data={chart.data}
                          chartType={chart.chartType as any}
-                         xKey={chart.chartType === 'histogram' ? 'range' : 'name'}
-                         yKey={chart.chartType === 'histogram' ? 'count' : 'count'}
-                         width={500}
+                         xKey="x"
+                         yKey="y"
+                         width={600}
                          height={250}
                          title={chart.variable}
                        />
@@ -455,7 +491,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
 
       {/* Slide-out Analysis Panel */}
       {selectedVariable && (
-        <div className="w-3/4 border-l border-border/50 bg-card/30 transition-all duration-300">
+        <div className="w-2/3 border-l border-border/50 bg-card/30 transition-all duration-300">
           <div className="h-full flex flex-col">
             <div className="flex-shrink-0 p-4 border-b border-border/50">
               <div className="flex items-center justify-between">
@@ -534,16 +570,16 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                          </div>
                        </div>
                     </CardHeader>
-                     <CardContent className="pt-0">
-                      <div className="h-80">
-                          <D3Chart
-                            key={`${chart.var1}-${chart.var2}-${chart.chartType}-${chart.data.length}`}
+                      <CardContent className="pt-0">
+                       <div className="h-80 w-full">
+                           <D3Chart
+                             key={`${chart.var1}-${chart.var2}-${chart.chartType}-${chart.data.length}`}
                             data={chart.data}
                             chartType={chart.chartType as any}
                             xKey={chart.chartType === 'multi-line' ? 'x' : (chart.chartType === 'scatter' ? 'x' : 'category')}
                             yKey={chart.chartType === 'multi-line' ? 'y' : (chart.chartType === 'scatter' ? 'y' : 'average')}
-                            width={600}
-                            height={300}
+                             width={800}
+                             height={300}
                             title={`${chart.var1} vs ${chart.var2}`}
                           />
                         </div>
