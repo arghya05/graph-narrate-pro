@@ -185,43 +185,32 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
 
       let chartData;
       
-      if (currentChartType === 'bar') {
-        // Create bar chart format
-        chartData = sortedCategories.flatMap(([category, points]) => 
-          points.slice(0, 10).map((point, idx) => ({
-            name: `${category}_${idx}`,
-            value: point.y,
-            category: category
-          }))
-        );
-      } else {
-        // Create multi-line chart data format with distinct colors
-        const colorPalette = [
-          'hsl(220, 70%, 50%)', // Blue
-          'hsl(0, 70%, 50%)',   // Red
-          'hsl(120, 70%, 40%)', // Green
-          'hsl(280, 70%, 50%)', // Purple
-          'hsl(35, 70%, 50%)',  // Orange
-          'hsl(180, 70%, 45%)', // Cyan
-          'hsl(60, 70%, 45%)',  // Yellow
-          'hsl(320, 70%, 50%)', // Magenta
-        ];
-        
-        // Ensure data has proper structure for multi-line chart
-        chartData = sortedCategories.map(([category, points], index) => ({
-          name: category,
-          data: smoothData(points, 50).map(point => ({
-            x: point.x,
-            y: point.y
-          })),
-          color: colorPalette[index % colorPalette.length]
-        }));
-      }
+      // Always create multi-line chart data format with distinct colors
+      const colorPalette = [
+        'hsl(220, 70%, 50%)', // Blue
+        'hsl(0, 70%, 50%)',   // Red
+        'hsl(120, 70%, 40%)', // Green
+        'hsl(280, 70%, 50%)', // Purple
+        'hsl(35, 70%, 50%)',  // Orange
+        'hsl(180, 70%, 45%)', // Cyan
+        'hsl(60, 70%, 45%)',  // Yellow
+        'hsl(320, 70%, 50%)', // Magenta
+      ];
+      
+      // Ensure data has proper structure for multi-line chart
+      chartData = sortedCategories.map(([category, points], index) => ({
+        name: category,
+        data: smoothData(points, 50).map(point => ({
+          x: point.x,
+          y: point.y
+        })),
+        color: colorPalette[index % colorPalette.length]
+      }));
 
       charts.push({
         var1: selectedVar,
         var2: catCol.name,
-        chartType: currentChartType,
+        chartType: 'line', // Always use line for multi-line charts
         data: chartData
       });
     });
@@ -284,27 +273,17 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
   );
 
   const handleChartTypeChange = (variable: string, newChartType: string) => {
-    setChartTypes(prev => {
-      console.log('Changing chart type for', variable, 'to', newChartType);
-      return {
-        ...prev,
-        [variable]: newChartType
-      };
-    });
+    setChartTypes(prev => ({
+      ...prev,
+      [variable]: newChartType
+    }));
     // Force regeneration
     generateSingleVariableCharts();
   };
 
   const handleTwoVarChartTypeChange = (var1: string, var2: string, newChartType: string) => {
-    const key = `${var1}_${var2}`;
-    setChartTypes(prev => ({
-      ...prev,
-      [key]: newChartType
-    }));
-    
-    // Regenerate charts with new type
-    const charts = generateTwoVariableCharts(var1);
-    setTwoVarCharts(charts);
+    // Not needed anymore since we only use line charts for two-variable analysis
+    console.log('Two-variable charts are now fixed to line chart type');
   };
 
   const getChartIcon = (chartType: string) => {
@@ -543,31 +522,15 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                                  <MoreVertical className="h-3 w-3" />
                                </Button>
                              </DropdownMenuTrigger>
-                             <DropdownMenuContent align="end" className="w-36 bg-popover border border-border shadow-lg z-50">
-                               <DropdownMenuItem 
-                                 onClick={() => handleTwoVarChartTypeChange(chart.var1, chart.var2, 'bar')}
-                                 className="flex items-center gap-2 cursor-pointer"
-                               >
-                                 <BarChart className="h-3 w-3" />
-                                 Bar Chart
-                               </DropdownMenuItem>
-                               <DropdownMenuItem 
-                                 onClick={() => handleTwoVarChartTypeChange(chart.var1, chart.var2, 'line')}
-                                 className="flex items-center gap-2 cursor-pointer"
-                               >
-                                 <LineChart className="h-3 w-3" />
-                                 Line Chart
-                               </DropdownMenuItem>
-                               {chart.chartType === 'scatter' && (
-                                 <DropdownMenuItem 
-                                   onClick={() => handleTwoVarChartTypeChange(chart.var1, chart.var2, 'scatter')}
-                                   className="flex items-center gap-2 cursor-pointer"
-                                 >
-                                   <TrendingUp className="h-3 w-3" />
-                                   Scatter Plot
-                                 </DropdownMenuItem>
-                               )}
-                             </DropdownMenuContent>
+                              <DropdownMenuContent align="end" className="w-36 bg-popover border border-border shadow-lg z-50">
+                                <DropdownMenuItem 
+                                  onClick={() => handleTwoVarChartTypeChange(chart.var1, chart.var2, 'line')}
+                                  className="flex items-center gap-2 cursor-pointer"
+                                >
+                                  <LineChart className="h-3 w-3" />
+                                  Line Chart
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
                            </DropdownMenu>
                          </div>
                        </div>
@@ -575,11 +538,11 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                       <CardContent className="pt-0">
                        <div className="h-96 w-full overflow-hidden">
                             <D3Chart
-                              key={`${chart.var1}-${chart.var2}-${chart.chartType}-${Date.now()}`}
+                              key={`${chart.var1}-${chart.var2}-multi-line-${Date.now()}`}
                               data={chart.data}
-                              chartType={chart.chartType === 'line' ? 'multi-line' : chart.chartType as any}
-                              xKey={chart.chartType === 'bar' ? 'name' : 'x'}
-                              yKey={chart.chartType === 'bar' ? 'value' : 'y'}
+                              chartType="multi-line"
+                              xKey="x"
+                              yKey="y"
                               width={1000}
                               height={350}
                               title={`${chart.var1} vs ${chart.var2}`}

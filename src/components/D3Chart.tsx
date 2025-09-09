@@ -346,16 +346,19 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .y((d: any) => yScale(d.y))
         .curve(d3.curveMonotoneX);
 
-      // Color scale for different lines
+      // Color scale for different lines - but prefer custom colors if provided
       const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
       // Draw lines for each series
       data.forEach((series: any, index: number) => {
+        // Use custom color if provided, otherwise fall back to color scale
+        const lineColor = series.color || colorScale(index.toString());
+        
         const path = g
           .append('path')
           .datum(series.data)
           .attr('fill', 'none')
-          .attr('stroke', series.color || colorScale(index.toString()))
+          .attr('stroke', lineColor)
           .attr('stroke-width', 2.5)
           .attr('stroke-linejoin', 'round')
           .attr('stroke-linecap', 'round')
@@ -373,7 +376,7 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
           .ease(d3.easeLinear)
           .attr('stroke-dashoffset', 0);
 
-        // Add data points for each series
+        // Add data points for each series with matching colors
         g.selectAll(`.dots-${index}`)
           .data(series.data)
           .enter()
@@ -382,7 +385,7 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
           .attr('cx', (d: any) => xScale(d.x))
           .attr('cy', (d: any) => yScale(d.y))
           .attr('r', 0)
-          .attr('fill', series.color || colorScale(index.toString()))
+          .attr('fill', lineColor)
           .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))')
           .transition()
           .duration(400)
