@@ -160,7 +160,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
     // Generate multi-line charts for each categorical column
     categoricalCols.forEach(catCol => {
       const key = `${selectedVar}_${catCol.name}`;
-      const currentChartType = chartTypes[key] || 'multi-line';
+      const currentChartType = chartTypes[key] || 'line';
       
       // Group data by category and create time series
       const categoryGroups: Record<string, Array<{x: number, y: number}>> = {};
@@ -206,9 +206,13 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
           'hsl(320, 70%, 50%)', // Magenta
         ];
         
+        // Ensure data has proper structure for multi-line chart
         chartData = sortedCategories.map(([category, points], index) => ({
           name: category,
-          data: smoothData(points, 50), // Smooth each line separately
+          data: smoothData(points, 50).map(point => ({
+            x: point.x,
+            y: point.y
+          })),
           color: colorPalette[index % colorPalette.length]
         }));
       }
@@ -294,26 +298,9 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       [key]: newChartType
     }));
     
-    // Update existing chart data with new type
-    setTwoVarCharts(prev => prev.map(chart => {
-      if (chart.var1 === var1 && chart.var2 === var2) {
-        if (newChartType === 'bar') {
-          // Convert multi-line data to bar chart format
-          const barData = chart.data.flatMap((line: any) => 
-            line.data.slice(0, 10).map((point: any, idx: number) => ({
-              name: `${line.name}_${idx}`,
-              value: point.y,
-              category: line.name
-            }))
-          );
-          return { ...chart, chartType: newChartType, data: barData };
-        } else {
-          // Keep as multi-line for line charts
-          return { ...chart, chartType: newChartType };
-        }
-      }
-      return chart;
-    }));
+    // Regenerate charts with new type
+    const charts = generateTwoVariableCharts(var1);
+    setTwoVarCharts(charts);
   };
 
   const getChartIcon = (chartType: string) => {
@@ -349,7 +336,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
   return (
     <div className="h-full flex">
       {/* Main Charts Grid */}
-      <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/3' : 'w-full'}`}>
+      <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/3' : 'w-full'} min-h-0`}>
         
         {/* Variable Charts Grid */}
         <div className="flex-1 p-4">
@@ -420,7 +407,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
               {filteredCharts.map((chart, index) => (
                   <Card 
                   key={`${chart.variable}-${index}`}
-                  className="border-border/50 bg-card/50 cursor-pointer hover:bg-card/80 transition-all duration-200 hover:shadow-md flex-shrink-0"
+                  className="border border-border/30 bg-background/80 backdrop-blur-sm cursor-pointer hover:bg-background/90 transition-all duration-200 hover:shadow-lg hover:scale-[1.01] flex-shrink-0"
                   onClick={() => onChartClick ? onChartClick(chart.variable) : handleVariableClick(chart.variable)}
                 >
                   <CardHeader className="pb-2">
@@ -480,17 +467,17 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0 pb-4">
-                     <div className="h-64 w-full">
-                       <D3Chart
-                         key={`${chart.variable}-${chart.chartType}-${chart.data.length}`}
-                         data={chart.data}
-                         chartType={chart.chartType as any}
-                         xKey="x"
-                         yKey="y"
-                         width={600}
-                         height={250}
-                         title={chart.variable}
-                       />
+                     <div className="h-80 w-full overflow-hidden">
+                        <D3Chart
+                          key={`${chart.variable}-${chart.chartType}-${chart.data.length}`}
+                          data={chart.data}
+                          chartType={chart.chartType as any}
+                          xKey="x"
+                          yKey="y"
+                          width={700}
+                          height={300}
+                          title={chart.variable}
+                        />
                      </div>
                   </CardContent>
                 </Card>
@@ -532,7 +519,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4 pb-6">
                  {twoVarCharts.map((chart, index) => (
-                   <Card key={`${chart.var1}-${chart.var2}-${index}`} className="border-border/50 bg-card/50">
+                   <Card key={`${chart.var1}-${chart.var2}-${index}`} className="border border-border/30 bg-background/80 backdrop-blur-sm hover:shadow-lg transition-all duration-200">
                      <CardHeader className="pb-2">
                        <div className="flex items-center justify-between">
                          <CardTitle className="text-sm font-medium">
@@ -582,17 +569,17 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                        </div>
                     </CardHeader>
                       <CardContent className="pt-0">
-                       <div className="h-80 w-full">
-                           <D3Chart
-                             key={`${chart.var1}-${chart.var2}-${chart.chartType}-${chart.data.length}`}
-                            data={chart.data}
-                            chartType={chart.chartType as any}
-                            xKey={chart.chartType === 'multi-line' ? 'x' : (chart.chartType === 'scatter' ? 'x' : 'category')}
-                            yKey={chart.chartType === 'multi-line' ? 'y' : (chart.chartType === 'scatter' ? 'y' : 'average')}
-                             width={800}
-                             height={300}
-                            title={`${chart.var1} vs ${chart.var2}`}
-                          />
+                       <div className="h-96 w-full overflow-hidden">
+                            <D3Chart
+                              key={`${chart.var1}-${chart.var2}-${chart.chartType}-${chart.data.length}`}
+                              data={chart.data}
+                              chartType={chart.chartType === 'line' ? 'multi-line' : chart.chartType as any}
+                              xKey={chart.chartType === 'bar' ? 'name' : 'x'}
+                              yKey={chart.chartType === 'bar' ? 'value' : 'y'}
+                              width={1000}
+                              height={350}
+                              title={`${chart.var1} vs ${chart.var2}`}
+                            />
                         </div>
                      </CardContent>
                   </Card>
