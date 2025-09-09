@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 
 interface D3ChartProps {
   data: any[];
-  chartType: 'bar' | 'line' | 'scatter' | 'pie' | 'histogram' | 'box' | 'heatmap' | 'area' | 'violin' | 'sunburst' | 'treemap';
+  chartType: 'bar' | 'line' | 'scatter' | 'pie' | 'histogram' | 'box' | 'heatmap' | 'area' | 'violin' | 'sunburst' | 'treemap' | 'multi-line';
   xKey: string;
   yKey: string;
   width?: number;
@@ -316,6 +316,128 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .style('font-size', '10px')
         .style('fill', 'hsl(var(--muted-foreground))')
         .text('Data Points');
+
+      // Style axis lines
+      g.selectAll('.domain')
+        .style('stroke', 'hsl(var(--border))');
+      
+      g.selectAll('.tick line')
+        .style('stroke', 'hsl(var(--border))');
+
+    } else if (chartType === 'multi-line') {
+      // Multi-line chart implementation
+      const allXValues = data.flatMap((series: any) => series.data.map((d: any) => d.x));
+      const allYValues = data.flatMap((series: any) => series.data.map((d: any) => d.y));
+
+      const xScale = d3
+        .scaleLinear()
+        .domain(d3.extent(allXValues) as [number, number])
+        .range([0, innerWidth]);
+
+      const yScale = d3
+        .scaleLinear()
+        .domain(d3.extent(allYValues) as [number, number])
+        .range([innerHeight, 0]);
+
+      // Create line generator
+      const line = d3
+        .line<any>()
+        .x((d: any) => xScale(d.x))
+        .y((d: any) => yScale(d.y))
+        .curve(d3.curveMonotoneX);
+
+      // Color scale for different lines
+      const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+      // Draw lines for each series
+      data.forEach((series: any, index: number) => {
+        const path = g
+          .append('path')
+          .datum(series.data)
+          .attr('fill', 'none')
+          .attr('stroke', series.color || colorScale(index.toString()))
+          .attr('stroke-width', 2.5)
+          .attr('stroke-linejoin', 'round')
+          .attr('stroke-linecap', 'round')
+          .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))')
+          .attr('d', line);
+
+        // Animate line drawing
+        const totalLength = path.node()?.getTotalLength() || 0;
+        path
+          .attr('stroke-dasharray', totalLength + ' ' + totalLength)
+          .attr('stroke-dashoffset', totalLength)
+          .transition()
+          .duration(1000)
+          .delay(index * 200)
+          .ease(d3.easeLinear)
+          .attr('stroke-dashoffset', 0);
+
+        // Add data points for each series
+        g.selectAll(`.dots-${index}`)
+          .data(series.data)
+          .enter()
+          .append('circle')
+          .attr('class', `dots-${index}`)
+          .attr('cx', (d: any) => xScale(d.x))
+          .attr('cy', (d: any) => yScale(d.y))
+          .attr('r', 0)
+          .attr('fill', series.color || colorScale(index.toString()))
+          .style('filter', 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))')
+          .transition()
+          .duration(400)
+          .delay((d: any, i: number) => index * 200 + i * 30)
+          .ease(d3.easeElasticOut)
+          .attr('r', 3);
+      });
+
+      // Add interactive legend
+      const legend = g.append('g')
+        .attr('class', 'legend')
+        .attr('transform', `translate(${innerWidth + 10}, 20)`);
+
+      const legendItems = legend.selectAll('.legend-item')
+        .data(data)
+        .enter()
+        .append('g')
+        .attr('class', 'legend-item')
+        .attr('transform', (d: any, i: number) => `translate(0, ${i * 20})`)
+        .style('cursor', 'pointer');
+
+      legendItems.append('line')
+        .attr('x1', 0)
+        .attr('x2', 15)
+        .attr('y1', 6)
+        .attr('y2', 6)
+        .attr('stroke', (d: any, i: number) => d.color || colorScale(i.toString()))
+        .attr('stroke-width', 3);
+
+      legendItems.append('text')
+        .attr('x', 20)
+        .attr('y', 6)
+        .attr('dy', '0.35em')
+        .style('font-size', '10px')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .text((d: any) => d.name);
+
+      // Add axes
+      const xAxis = d3.axisBottom(xScale).ticks(6);
+      const yAxis = d3.axisLeft(yScale).ticks(6);
+
+      g.append('g')
+        .attr('class', 'x-axis')
+        .attr('transform', `translate(0,${innerHeight})`)
+        .call(xAxis)
+        .selectAll('text')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '10px');
+
+      g.append('g')
+        .attr('class', 'y-axis')
+        .call(yAxis)
+        .selectAll('text')
+        .style('fill', 'hsl(var(--muted-foreground))')
+        .style('font-size', '10px');
 
       // Style axis lines
       g.selectAll('.domain')

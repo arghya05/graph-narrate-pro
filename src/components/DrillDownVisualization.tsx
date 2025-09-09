@@ -153,34 +153,40 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       data: any[];
     }> = [];
 
-    // Only generate Numeric vs Categorical charts with line plots
+    // Generate multi-line charts for each categorical column
     categoricalCols.forEach(catCol => {
-      const grouped: Record<string, number[]> = {};
-      data.forEach(row => {
+      // Group data by category and create time series
+      const categoryGroups: Record<string, Array<{x: number, y: number}>> = {};
+      
+      data.forEach((row, index) => {
         const catVal = row[catCol.name];
         const numVal = row[selectedVar];
         if (catVal != null && numVal != null) {
-          if (!grouped[catVal]) grouped[catVal] = [];
-          grouped[catVal].push(Number(numVal));
+          if (!categoryGroups[catVal]) categoryGroups[catVal] = [];
+          categoryGroups[catVal].push({
+            x: index,
+            y: Number(numVal)
+          });
         }
       });
 
-      // Limit to top 6 categories by count to reduce load
-      const sortedEntries = Object.entries(grouped)
+      // Limit to top 6 categories by data points count
+      const sortedCategories = Object.entries(categoryGroups)
         .sort(([,a], [,b]) => b.length - a.length)
         .slice(0, 6);
 
-      const chartData = sortedEntries.map(([category, values]) => ({
-        category,
-        average: values.reduce((a, b) => a + b, 0) / values.length,
-        count: values.length
+      // Create multi-line chart data format
+      const multiLineData = sortedCategories.map(([category, points]) => ({
+        name: category,
+        data: smoothData(points, 50), // Smooth each line separately
+        color: `hsl(${Math.abs(category.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % 360}, 70%, 50%)`
       }));
 
       charts.push({
         var1: selectedVar,
         var2: catCol.name,
-        chartType: 'line', // Force line charts for better performance
-        data: chartData
+        chartType: 'multi-line',
+        data: multiLineData
       });
     });
 
@@ -296,7 +302,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
   return (
     <div className="h-full flex">
       {/* Main Charts Grid */}
-      <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/3' : 'w-full'}`}>
+      <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/4' : 'w-full'}`}>
         
         {/* Variable Charts Grid */}
         <div className="flex-1 p-4">
@@ -449,7 +455,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
 
       {/* Slide-out Analysis Panel */}
       {selectedVariable && (
-        <div className="w-2/3 border-l border-border/50 bg-card/30 transition-all duration-300">
+        <div className="w-3/4 border-l border-border/50 bg-card/30 transition-all duration-300">
           <div className="h-full flex flex-col">
             <div className="flex-shrink-0 p-4 border-b border-border/50">
               <div className="flex items-center justify-between">
@@ -528,20 +534,20 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                          </div>
                        </div>
                     </CardHeader>
-                    <CardContent className="pt-0">
-                     <div className="h-64">
-                         <D3Chart
-                           key={`${chart.var1}-${chart.var2}-${chart.chartType}-${chart.data.length}`}
-                           data={chart.data}
-                           chartType={chart.chartType as any}
-                           xKey={chart.chartType === 'scatter' ? 'x' : 'category'}
-                           yKey={chart.chartType === 'scatter' ? 'y' : 'average'}
-                           width={450}
-                           height={250}
-                           title={`${chart.var1} vs ${chart.var2}`}
-                         />
-                       </div>
-                    </CardContent>
+                     <CardContent className="pt-0">
+                      <div className="h-80">
+                          <D3Chart
+                            key={`${chart.var1}-${chart.var2}-${chart.chartType}-${chart.data.length}`}
+                            data={chart.data}
+                            chartType={chart.chartType as any}
+                            xKey={chart.chartType === 'multi-line' ? 'x' : (chart.chartType === 'scatter' ? 'x' : 'category')}
+                            yKey={chart.chartType === 'multi-line' ? 'y' : (chart.chartType === 'scatter' ? 'y' : 'average')}
+                            width={600}
+                            height={300}
+                            title={`${chart.var1} vs ${chart.var2}`}
+                          />
+                        </div>
+                     </CardContent>
                   </Card>
                 ))}
               </div>
