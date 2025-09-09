@@ -326,6 +326,25 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
 
     } else if (chartType === 'multi-line') {
       // Multi-line chart implementation
+      console.log('Multi-line chart data:', data);
+      
+      if (!Array.isArray(data) || data.length === 0) {
+        console.log('No data for multi-line chart');
+        return;
+      }
+
+      // Validate data structure
+      const isValidData = data.every((series: any) => 
+        series && typeof series === 'object' && 
+        Array.isArray(series.data) && 
+        series.name
+      );
+      
+      if (!isValidData) {
+        console.log('Invalid multi-line data structure:', data);
+        return;
+      }
+
       const allXValues = data.flatMap((series: any) => series.data.map((d: any) => d.x));
       const allYValues = data.flatMap((series: any) => series.data.map((d: any) => d.y));
 
@@ -346,8 +365,17 @@ export function D3Chart({ data, chartType, xKey, yKey, width = 500, height = 250
         .y((d: any) => yScale(d.y))
         .curve(d3.curveMonotoneX);
 
-      // Color scale for different lines - but prefer custom colors if provided
-      const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+      // Color scale for different lines - use explicit colors instead of d3 scheme
+      const colorScale = d3.scaleOrdinal([
+        '#3b82f6', // blue
+        '#ef4444', // red  
+        '#22c55e', // green
+        '#a855f7', // purple
+        '#f97316', // orange
+        '#06b6d4', // cyan
+        '#eab308', // yellow
+        '#ec4899'  // pink
+      ]);
 
       // Draw lines for each series
       data.forEach((series: any, index: number) => {

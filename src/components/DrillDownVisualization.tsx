@@ -96,52 +96,8 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
   };
 
   const generateSingleVariableCharts = () => {
-    if (!data || data.length === 0) return;
-
-    const charts: Array<{
-      variable: string;
-      chartType: string;
-      data: any[];
-    }> = [];
-
-    // Only include numeric columns for single variable charts
-    const numericColumns = columnsInfo.filter(col => col.data_type === 'numeric');
-    
-    for (let i = 0; i < numericColumns.length; i++) {
-      const column = numericColumns[i];
-      if (!column) continue;
-
-      // Set default chart type as line for numeric data
-      const defaultType = 'line';
-      if (!chartTypes[column.name]) {
-        setChartTypes(prev => ({
-          ...prev,
-          [column.name]: defaultType
-        }));
-      }
-
-      // Create distribution data for numeric columns (showing value fluctuations)
-      const values = data.map(row => Number(row[column.name])).filter(v => !isNaN(v));
-      const sortedValues = [...values].sort((a, b) => a - b);
-      
-      // Create distribution chart data showing value fluctuations over percentiles
-      const rawValues = sortedValues.map((value, index) => ({
-        x: (index / sortedValues.length) * 100, // Percentile
-        y: value,
-        label: `${((index / sortedValues.length) * 100).toFixed(1)}th percentile: ${value}`
-      }));
-
-      // Apply smoothing to reduce data points for performance
-      const smoothedValues = smoothData(rawValues, 100);
-
-      charts.push({
-        variable: column.name,
-        chartType: chartTypes[column.name] || 'line',
-        data: smoothedValues
-      });
-    }
-
-    setSingleVarCharts(charts);
+    // Skip single variable charts - user doesn't need distribution
+    setSingleVarCharts([]);
   };
 
   const generateTwoVariableCharts = (selectedVar: string) => {
@@ -321,152 +277,40 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       {/* Main Charts Grid */}
       <div className={`transition-all duration-300 ${selectedVariable ? 'w-1/3' : 'w-full'} min-h-0`}>
         
-        {/* Variable Charts Grid */}
+        {/* Show message to select variables for analysis */}
         <div className="flex-1 p-4">
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
-                Variable Analysis
+                Variable Selection
               </h3>
-              <Badge variant="outline" className="text-xs">
-                {filteredCharts.length} of {singleVarCharts.length} charts
-              </Badge>
             </div>
             <p className="text-xs text-muted-foreground mb-3">
-              Click on any chart to explore relationships with other variables
+              Select a numeric variable below to explore its relationships with categorical variables
             </p>
             
-            {/* Multi-select filter */}
-            {columnsInfo.length > 0 && (
-              <Collapsible open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="outline" className="w-full mb-4 justify-between h-auto p-3 bg-card/30 border-border/50 hover:bg-card hover:text-card-foreground">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-3 w-3" />
-                      <span className="text-xs font-medium">Filter Variables ({selectedVariables.length}/{columnsInfo.length})</span>
-                    </div>
-                    <ChevronDown className={`h-3 w-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <Card className="p-3 mb-4 bg-card/30 border-border/50">
-                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                      {columnsInfo.map(column => (
-                        <div key={column.name} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={column.name}
-                            checked={selectedVariables.includes(column.name)}
-                            onCheckedChange={() => handleVariableToggle(column.name)}
-                          />
-                          <label
-                            htmlFor={column.name}
-                            className="text-xs cursor-pointer truncate flex-1"
-                            title={column.name}
-                          >
-                            {column.name}
-                          </label>
-                          <Badge variant="secondary" className="text-[10px] px-1">
-                            {column.data_type}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-            
-            {columnsInfo.length === 0 && (
-              <Card className="p-3 mb-4 bg-muted/20 border-border/50">
-                <p className="text-xs text-muted-foreground text-center">
-                  Upload data to see variable filters
-                </p>
-              </Card>
-            )}
-          </div>
-          <ScrollArea className="h-[calc(100vh-280px)]">
-            <div className="space-y-4 pb-6">
-              {filteredCharts.map((chart, index) => (
-                  <Card 
-                  key={`${chart.variable}-${index}`}
-                  className="border border-border/30 bg-background/80 backdrop-blur-sm cursor-pointer hover:bg-background/90 transition-all duration-200 hover:shadow-lg hover:scale-[1.01] flex-shrink-0"
-                  onClick={() => onChartClick ? onChartClick(chart.variable) : handleVariableClick(chart.variable)}
+            {/* Variable Selection Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {columnsInfo.filter(col => col.data_type === 'numeric').map((column) => (
+                <Card 
+                  key={column.name}
+                  className="border border-border/30 bg-background/80 backdrop-blur-sm cursor-pointer hover:bg-background/90 transition-all duration-200 hover:shadow-lg hover:scale-[1.02] p-4"
+                  onClick={() => handleVariableClick(column.name)}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium">
-                        {chart.variable}
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {chart.chartType}
-                        </Badge>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-6 w-6 p-0"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-36 bg-popover border border-border shadow-lg z-50">
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleChartTypeChange(chart.variable, 'bar');
-                              }}
-                              className="flex items-center gap-2 cursor-pointer"
-                            >
-                              <BarChart className="h-3 w-3" />
-                              Bar Chart
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleChartTypeChange(chart.variable, 'line');
-                              }}
-                              className="flex items-center gap-2 cursor-pointer"
-                            >
-                              <LineChart className="h-3 w-3" />
-                              Line Chart
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleChartTypeChange(chart.variable, 'pie');
-                              }}
-                              className="flex items-center gap-2 cursor-pointer"
-                            >
-                              <PieChart className="h-3 w-3" />
-                              Pie Chart
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 pb-4">
-                     <div className="h-80 w-full overflow-hidden">
-                        <D3Chart
-                          key={`${chart.variable}-${chart.chartType}-${Date.now()}`}
-                          data={chart.data}
-                          chartType={chart.chartType as any}
-                          xKey="x"
-                          yKey="y"
-                          width={700}
-                          height={300}
-                          title={chart.variable}
-                        />
-                      </div>
-                   </CardContent>
-                 </Card>
+                  <div className="text-center">
+                    <h4 className="font-medium text-sm mb-1">{column.name}</h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {column.data_type}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {column.unique_count} unique values
+                    </p>
+                  </div>
+                </Card>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
 
