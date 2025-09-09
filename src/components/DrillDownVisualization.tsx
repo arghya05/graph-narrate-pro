@@ -50,7 +50,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       // Initialize with all variables selected
       setSelectedVariables(columnsInfo.map(col => col.name));
     }
-  }, [columnsInfo, data]);
+  }, [columnsInfo, data, chartTypes]);
 
   const analyzeColumns = () => {
     if (!data || data.length === 0) return;
@@ -112,10 +112,11 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
       if (!column) continue;
 
       // Set default chart type as line for numeric data
+      const defaultType = 'line';
       if (!chartTypes[column.name]) {
         setChartTypes(prev => ({
           ...prev,
-          [column.name]: 'line'
+          [column.name]: defaultType
         }));
       }
 
@@ -283,12 +284,15 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
   );
 
   const handleChartTypeChange = (variable: string, newChartType: string) => {
-    setChartTypes(prev => ({
-      ...prev,
-      [variable]: newChartType
-    }));
-    // Regenerate charts with new type
-    setTimeout(() => generateSingleVariableCharts(), 0);
+    setChartTypes(prev => {
+      console.log('Changing chart type for', variable, 'to', newChartType);
+      return {
+        ...prev,
+        [variable]: newChartType
+      };
+    });
+    // Force regeneration
+    generateSingleVariableCharts();
   };
 
   const handleTwoVarChartTypeChange = (var1: string, var2: string, newChartType: string) => {
@@ -469,7 +473,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                   <CardContent className="pt-0 pb-4">
                      <div className="h-80 w-full overflow-hidden">
                         <D3Chart
-                          key={`${chart.variable}-${chart.chartType}-${chart.data.length}`}
+                          key={`${chart.variable}-${chart.chartType}-${Date.now()}`}
                           data={chart.data}
                           chartType={chart.chartType as any}
                           xKey="x"
@@ -478,9 +482,9 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                           height={300}
                           title={chart.variable}
                         />
-                     </div>
-                  </CardContent>
-                </Card>
+                      </div>
+                   </CardContent>
+                 </Card>
               ))}
             </div>
           </ScrollArea>
@@ -571,7 +575,7 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                       <CardContent className="pt-0">
                        <div className="h-96 w-full overflow-hidden">
                             <D3Chart
-                              key={`${chart.var1}-${chart.var2}-${chart.chartType}-${chart.data.length}`}
+                              key={`${chart.var1}-${chart.var2}-${chart.chartType}-${Date.now()}`}
                               data={chart.data}
                               chartType={chart.chartType === 'line' ? 'multi-line' : chart.chartType as any}
                               xKey={chart.chartType === 'bar' ? 'name' : 'x'}
@@ -580,12 +584,12 @@ export function DrillDownVisualization({ data, onChartClick }: DrillDownVisualiz
                               height={350}
                               title={`${chart.var1} vs ${chart.var2}`}
                             />
-                        </div>
-                     </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </ScrollArea>
+                         </div>
+                      </CardContent>
+                   </Card>
+                 ))}
+               </div>
+             </ScrollArea>
           </div>
         </div>
       )}
